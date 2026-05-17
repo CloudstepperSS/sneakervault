@@ -848,7 +848,7 @@ Return ONLY a valid JSON object, no markdown, no explanation:
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-opus-4-5-20251101',
+      model: 'claude-opus-4-5',
       max_tokens: 512,
       messages: [{
         role: 'user',
@@ -941,7 +941,9 @@ async function goAnalyze() {
   try {
     result = await identifyShoe(photoDataUrl);
   } catch (err) {
-    toast('Could not identify shoe — please fill in manually', 'error');
+    console.error('AI identification error:', err);
+    $('an-status').textContent = 'Error: ' + err.message;
+    toast('AI error: ' + err.message, 'error');
     result = {};
   }
 
