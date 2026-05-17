@@ -7,7 +7,267 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ffffff">
 <title>SneakerVault</title>
-<link rel="stylesheet" href="style.css">
+
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:   #ffffff;
+  --s1:   #f7f7f5;
+  --s2:   #f0f0ee;
+  --s3:   #e8e8e5;
+  --b1:   rgba(0,0,0,0.07);
+  --b2:   rgba(0,0,0,0.13);
+  --b3:   rgba(0,0,0,0.22);
+  --t1:   #0d0d0d;
+  --t2:   #666;
+  --t3:   #aaa;
+  --green:#1a7a3e;
+  --red:  #c0392b;
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --radius: 12px;
+}
+
+html { height: 100%; }
+body {
+  height: 100%; background: var(--bg); color: var(--t1);
+  font-family: var(--sans); font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased; overflow: hidden;
+}
+
+/* ── Screens ───────────────────────────────── */
+#auth-screen, #main-app, #camera-screen, #analyzing-screen, #review-screen {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+}
+
+/* ── Auth ──────────────────────────────────── */
+#auth-screen { align-items: center; justify-content: center; padding: 24px; background: var(--s1); }
+.auth-box { background: var(--bg); border: 1px solid var(--b2); border-radius: 20px; padding: 32px 28px; width: 100%; max-width: 380px; }
+.auth-logo { font-family: var(--mono); font-size: 18px; font-weight: 700; letter-spacing: .1em; margin-bottom: 6px; }
+.auth-logo em { font-style: normal; border-bottom: 2px solid var(--t1); }
+.auth-sub { font-size: 13px; color: var(--t2); margin-bottom: 24px; }
+.auth-tabs { display: flex; gap: 4px; background: var(--s1); border-radius: 9px; padding: 4px; margin-bottom: 20px; }
+.auth-tab { flex: 1; padding: 8px; border: none; background: none; font-family: var(--sans); font-size: 13px; color: var(--t2); border-radius: 7px; cursor: pointer; transition: all .15s; }
+.auth-tab.active { background: var(--bg); color: var(--t1); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.auth-field { margin-bottom: 14px; }
+.auth-field label { display: block; font-size: 11px; font-family: var(--mono); color: var(--t2); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+.auth-field input { width: 100%; background: var(--s1); border: 1px solid var(--b2); color: var(--t1); font-family: var(--sans); font-size: 14px; padding: 11px 14px; border-radius: 10px; outline: none; transition: border-color .15s; -webkit-appearance: none; }
+.auth-field input:focus { border-color: var(--t1); }
+#auth-err { font-size: 12px; color: var(--red); min-height: 18px; margin-bottom: 10px; }
+.auth-btn { width: 100%; padding: 13px; background: var(--t1); color: #fff; font-family: var(--sans); font-size: 14px; font-weight: 700; border: none; border-radius: 11px; cursor: pointer; transition: opacity .15s; }
+.auth-btn:hover { opacity: .85; }
+.auth-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Nav ───────────────────────────────────── */
+nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--b1);
+  flex-shrink: 0; background: var(--bg);
+  padding-top: max(14px, env(safe-area-inset-top));
+}
+.nav-logo { font-family: var(--mono); font-size: 14px; font-weight: 700; letter-spacing: .1em; }
+.nav-logo em { font-style: normal; border-bottom: 2px solid var(--t1); }
+.nav-right { display: flex; align-items: center; gap: 8px; }
+
+/* ── Buttons ───────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: 5px; font-family: var(--sans); font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 9px; cursor: pointer; border: none; transition: opacity .15s; white-space: nowrap; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-primary { background: var(--t1); color: #fff; }
+.btn-primary:hover { opacity: .85; }
+.btn-ghost { background: transparent; color: var(--t2); border: 1px solid var(--b2); }
+.btn-ghost:hover { background: var(--s1); }
+
+/* ── Stats bar ─────────────────────────────── */
+.stats-bar { display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--b1); flex-shrink: 0; }
+.stat { padding: 10px 14px; border-right: 1px solid var(--b1); }
+.stat:last-child { border-right: none; }
+.stat-label { font-size: 9px; font-family: var(--mono); color: var(--t3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 3px; }
+.stat-value { font-size: 15px; font-weight: 700; font-family: var(--mono); color: var(--t1); }
+@media (max-width: 480px) {
+  .stats-bar { grid-template-columns: repeat(2,1fr); }
+  .stat:nth-child(2) { border-right: none; }
+  .stat:nth-child(3) { border-top: 1px solid var(--b1); }
+  .stat:nth-child(4) { border-top: 1px solid var(--b1); border-right: none; }
+}
+
+/* ── Toolbar ───────────────────────────────── */
+.toolbar { display: flex; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--b1); flex-shrink: 0; }
+.search-wrap { position: relative; flex: 1; }
+.search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--t3); pointer-events: none; }
+.search-input { width: 100%; background: var(--s1); border: 1px solid var(--b1); color: var(--t1); font-family: var(--sans); font-size: 14px; padding: 9px 12px 9px 34px; border-radius: 9px; outline: none; -webkit-appearance: none; transition: border-color .15s; }
+.search-input:focus { border-color: var(--t1); }
+.search-input::placeholder { color: var(--t3); }
+.sort-select { background: var(--s1); border: 1px solid var(--b1); color: var(--t1); font-family: var(--sans); font-size: 13px; padding: 9px 10px; border-radius: 9px; outline: none; cursor: pointer; -webkit-appearance: none; }
+
+/* ── Filter chips ──────────────────────────── */
+.filters { display: flex; gap: 6px; padding: 8px 14px; border-bottom: 1px solid var(--b1); overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+.filters::-webkit-scrollbar { display: none; }
+.filter-chip { font-size: 11px; padding: 5px 13px; border-radius: 20px; border: 1px solid var(--b2); color: var(--t2); background: var(--bg); cursor: pointer; white-space: nowrap; font-family: var(--sans); transition: all .15s; flex-shrink: 0; }
+.filter-chip.active { background: var(--t1); color: #fff; border-color: var(--t1); font-weight: 600; }
+.filter-sep { width: 1px; background: var(--b2); margin: 3px 2px; flex-shrink: 0; }
+
+/* ── Grid ──────────────────────────────────── */
+.grid-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px; }
+.shoe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+
+/* ── Shoe card ─────────────────────────────── */
+.shoe-card { background: var(--bg); border: 1px solid var(--b1); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: transform .15s, border-color .15s; -webkit-tap-highlight-color: transparent; }
+.shoe-card:active { transform: scale(.97); }
+.shoe-card.selected { border-color: var(--t1); border-width: 1.5px; }
+.shoe-img-wrap { aspect-ratio: 1; background: var(--s2); position: relative; overflow: hidden; }
+.shoe-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shoe-img-ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 36px; }
+.shoe-ai-tag { position: absolute; top: 6px; right: 6px; background: rgba(255,255,255,.92); border: 1px solid var(--b2); border-radius: 4px; padding: 2px 6px; font-size: 8px; font-family: var(--mono); color: var(--t1); }
+.shoe-body { padding: 9px 10px; }
+.shoe-brand { font-size: 8px; font-family: var(--mono); color: var(--t3); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+.shoe-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+.shoe-sub { font-size: 10px; color: var(--t2); margin-bottom: 6px; }
+.shoe-footer { display: flex; justify-content: space-between; align-items: flex-end; }
+.shoe-size { font-size: 10px; font-family: var(--mono); color: var(--t3); }
+.shoe-prices { text-align: right; }
+.shoe-resell { font-size: 13px; font-weight: 700; font-family: var(--mono); }
+.shoe-retail { font-size: 9px; color: var(--t3); }
+.shoe-roi { font-size: 9px; }
+.roi-pos { color: var(--green); }
+.roi-neg { color: var(--red); }
+
+/* ── Empty state ───────────────────────────── */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 24px; gap: 12px; grid-column: 1/-1; }
+.empty-icon { font-size: 48px; }
+.empty-state h2 { font-size: 17px; font-weight: 600; }
+.empty-state p { font-size: 14px; color: var(--t2); max-width: 240px; line-height: 1.6; }
+
+/* ── Tab bar ───────────────────────────────── */
+.tabbar { display: flex; border-top: 1px solid var(--b1); background: var(--bg); flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 12px; gap: 3px; border: none; background: none; cursor: pointer; color: var(--t3); font-family: var(--mono); font-size: 9px; letter-spacing: .06em; text-transform: uppercase; -webkit-tap-highlight-color: transparent; transition: color .15s; }
+.tab.on { color: var(--t1); }
+.tab svg { color: inherit; }
+
+/* ── Camera ────────────────────────────────── */
+#camera-screen { background: #000; }
+.cam-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 10px; padding-top: max(16px, env(safe-area-inset-top)); background: #000; flex-shrink: 0; }
+.cam-cancel { font-size: 15px; color: rgba(255,255,255,.7); font-family: var(--sans); background: none; border: none; cursor: pointer; padding: 4px; }
+.cam-title { font-family: var(--mono); font-size: 11px; font-weight: 700; color: #fff; letter-spacing: .07em; }
+.cam-view { flex: 1; position: relative; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+#cam-video { width: 100%; height: 100%; object-fit: cover; }
+.cam-corner { position: absolute; width: 52px; height: 52px; }
+.cam-tl { top: 15%; left: 10%; border-top: 2px solid #fff; border-left: 2px solid #fff; border-radius: 4px 0 0 0; }
+.cam-tr { top: 15%; right: 10%; border-top: 2px solid #fff; border-right: 2px solid #fff; border-radius: 0 4px 0 0; }
+.cam-bl { bottom: 15%; left: 10%; border-bottom: 2px solid #fff; border-left: 2px solid #fff; border-radius: 0 0 0 4px; }
+.cam-br { bottom: 15%; right: 10%; border-bottom: 2px solid #fff; border-right: 2px solid #fff; border-radius: 0 0 4px 0; }
+.cam-hint { position: absolute; bottom: calc(15% - 26px); left: 0; right: 0; text-align: center; font-size: 11px; color: rgba(255,255,255,.5); font-family: var(--mono); }
+.cam-controls { display: flex; align-items: center; justify-content: space-around; padding: 18px 32px 24px; background: #000; flex-shrink: 0; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+.cam-gallery { width: 50px; height: 50px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,.3); overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.08); cursor: pointer; flex-shrink: 0; }
+.cam-gallery svg { color: rgba(255,255,255,.7); }
+.cam-gallery img { width: 100%; height: 100%; object-fit: cover; }
+.cam-shutter { width: 70px; height: 70px; border-radius: 50%; background: #fff; border: 3px solid rgba(255,255,255,.4); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: transform .1s; -webkit-tap-highlight-color: transparent; }
+.cam-shutter:active { transform: scale(.93); }
+.cam-shutter-inner { width: 56px; height: 56px; border-radius: 50%; background: #fff; border: 2px solid #ddd; }
+.cam-flip { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+.cam-flip svg { color: #fff; }
+
+/* ── Analyzing ─────────────────────────────── */
+#analyzing-screen { background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.an-img-wrap { width: 100%; aspect-ratio: 4/3; position: relative; overflow: hidden; flex-shrink: 0; }
+.an-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.an-overlay { position: absolute; inset: 0; background: rgba(255,255,255,.55); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.an-spinner { width: 38px; height: 38px; border: 2px solid rgba(0,0,0,.1); border-top-color: var(--t1); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.an-label { font-family: var(--mono); font-size: 11px; color: var(--t1); letter-spacing: .08em; }
+.an-body { padding: 18px 20px; flex: 1; }
+.an-status-row { display: flex; align-items: center; gap: 8px; background: var(--s1); border: 1px solid var(--b1); border-radius: 9px; padding: 10px 14px; margin-bottom: 16px; }
+.an-dot { width: 7px; height: 7px; background: var(--t1); border-radius: 50%; flex-shrink: 0; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.an-status-text { font-size: 12px; font-family: var(--mono); color: var(--t1); }
+.an-section-label { font-size: 9px; font-family: var(--mono); color: var(--t3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 10px; }
+.an-field { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--b1); }
+.an-field:last-child { border-bottom: none; }
+.an-key { font-size: 13px; color: var(--t2); }
+.an-val { font-size: 13px; font-weight: 700; font-family: var(--mono); color: var(--t1); }
+.an-val-ph { height: 13px; width: 80px; background: var(--s2); border-radius: 4px; animation: shimmer 1.2s ease-in-out infinite; }
+@keyframes shimmer { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+/* ── Review ────────────────────────────────── */
+#review-screen { background: var(--bg); overflow: hidden; }
+.rev-nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--b1); flex-shrink: 0; padding-top: max(14px, env(safe-area-inset-top)); }
+.rev-back { display: flex; align-items: center; gap: 4px; font-size: 14px; color: var(--t2); font-family: var(--sans); background: none; border: none; cursor: pointer; padding: 4px; }
+.rev-save { background: var(--t1); color: #fff; border: none; border-radius: 10px; padding: 9px 20px; font-size: 13px; font-weight: 700; font-family: var(--sans); cursor: pointer; transition: opacity .15s; }
+.rev-save:hover { opacity: .85; }
+.rev-save:disabled { opacity: .4; cursor: not-allowed; }
+.rev-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 32px; }
+.rev-img-wrap { width: 100%; aspect-ratio: 4/3; border-radius: 14px; overflow: hidden; position: relative; flex-shrink: 0; background: var(--s2); }
+.rev-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rev-photo-badge { position: absolute; bottom: 9px; left: 9px; background: rgba(255,255,255,.92); border: 1px solid var(--b2); border-radius: 6px; padding: 4px 9px; font-size: 9px; font-family: var(--mono); color: var(--t1); }
+.rev-ai-badge { position: absolute; top: 9px; right: 9px; background: var(--t1); border-radius: 6px; padding: 4px 10px; font-size: 9px; font-family: var(--mono); color: #fff; }
+
+.form-row { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 9px; font-family: var(--mono); color: var(--t3); letter-spacing: .07em; text-transform: uppercase; }
+.field input, .field select { background: var(--s1); border: 1px solid var(--b1); color: var(--t1); font-family: var(--sans); font-size: 14px; padding: 11px 13px; border-radius: 10px; width: 100%; outline: none; -webkit-appearance: none; transition: border-color .15s; }
+.field input:focus, .field select:focus { border-color: var(--t1); background: var(--bg); }
+.field input::placeholder { color: var(--t3); }
+.field input.ai-filled, .field select.ai-filled { border-color: var(--t1); background: var(--bg); }
+
+.roi-row { display: flex; justify-content: space-between; align-items: center; background: var(--s1); border: 1px solid var(--b2); border-radius: 10px; padding: 12px 15px; font-family: var(--mono); font-size: 12px; }
+.roi-label { color: var(--t2); }
+.roi-value { font-weight: 700; }
+.form-err { font-size: 12px; color: var(--red); min-height: 16px; }
+
+/* ── Bottom sheet ──────────────────────────── */
+#sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: flex-end; }
+.sheet { background: var(--bg); border-radius: 22px 22px 0 0; border-top: 1px solid var(--b2); width: 100%; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.sheet-handle { width: 36px; height: 4px; background: var(--b3); border-radius: 2px; margin: 12px auto 0; }
+.sheet-img-wrap { width: 100%; aspect-ratio: 16/9; background: var(--s2); position: relative; overflow: hidden; margin-top: 12px; }
+.sheet-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sheet-photo-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 56px; }
+.sheet-body { padding: 18px 20px 6px; }
+.sheet-brand { font-size: 9px; font-family: var(--mono); color: var(--t3); letter-spacing: .09em; text-transform: uppercase; margin-bottom: 3px; }
+.sheet-name { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+.sheet-sub { font-size: 13px; color: var(--t2); margin-bottom: 16px; }
+.sheet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.sf { background: var(--s1); border-radius: 9px; padding: 10px 12px; }
+.sf-l { font-size: 9px; font-family: var(--mono); color: var(--t3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+.sf-v { font-size: 14px; font-weight: 600; }
+.sheet-prices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.sp-box { background: var(--s1); border: 1px solid var(--b1); border-radius: 9px; padding: 12px 14px; }
+.sp-label { font-size: 9px; font-family: var(--mono); color: var(--t3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.sp-value { font-size: 20px; font-weight: 700; font-family: var(--mono); }
+.sp-value.muted { color: var(--t2); }
+.sheet-roi { display: flex; justify-content: space-between; background: var(--s1); border: 1px solid var(--b2); border-radius: 9px; padding: 11px 14px; font-family: var(--mono); font-size: 12px; margin-bottom: 4px; }
+.sheet-btns { display: flex; gap: 10px; padding: 14px 20px; }
+.sbtn { flex: 1; padding: 14px; border-radius: 13px; font-size: 14px; font-weight: 700; border: none; cursor: pointer; font-family: var(--sans); -webkit-tap-highlight-color: transparent; transition: opacity .15s; }
+.sbtn:active { opacity: .75; }
+.sbtn-ghost { background: var(--s1); color: var(--t2); border: 1px solid var(--b2); }
+.sbtn-primary { background: var(--t1); color: #fff; }
+
+/* ── Stats page ────────────────────────────── */
+#stats-view { position: fixed; inset: 0; display: none; flex-direction: column; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.stats-page { padding: 20px; padding-top: max(20px, env(safe-area-inset-top)); display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
+.stats-heading { font-family: var(--mono); font-size: 11px; color: var(--t3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 2px; }
+.stats-card { background: var(--s1); border: 1px solid var(--b1); border-radius: var(--radius); padding: 16px; }
+.stats-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+.stats-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--b1); font-size: 13px; }
+.stats-row:last-child { border-bottom: none; }
+.stats-row-label { color: var(--t2); }
+.stats-row-val { font-weight: 600; font-family: var(--mono); }
+.brand-bar-wrap { margin-top: 4px; }
+.brand-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.brand-bar-label { font-size: 12px; color: var(--t2); width: 80px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-bar-track { flex: 1; height: 6px; background: var(--s2); border-radius: 3px; overflow: hidden; }
+.brand-bar-fill { height: 100%; background: var(--t1); border-radius: 3px; transition: width .4s ease; }
+.brand-bar-count { font-size: 11px; font-family: var(--mono); color: var(--t3); width: 20px; text-align: right; flex-shrink: 0; }
+
+/* ── Toast ─────────────────────────────────── */
+#toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--t1); color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 500; padding: 11px 20px; border-radius: 24px; z-index: 9999; opacity: 0; transition: opacity .2s, transform .2s; white-space: nowrap; pointer-events: none; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.success { background: var(--green); }
+#toast.error { background: var(--red); }
+
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -324,550 +584,710 @@
 <!-- Toast -->
 <div id="toast"></div>
 
-<script src="config.js"></script>
-<script type="module" src="app.js"></script>
-</body>
-</html>
-</div>
 
-<!-- ── MAIN APP ──────────────────────────────── -->
-<div id="main-app" style="display:none">
+<script>
+const CONFIG = {
+  SUPABASE_URL:      'https://gkukqcjusapgmqxbkdub.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdWtxY2p1c2FwZ21xeGJrZHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDI4NDIsImV4cCI6MjA5NDYxODg0Mn0.bUDh70Z1gvCLyG3MMIMFjYHKliDlsi2JsOAmxBY-DPo',
+  WORKER_URL: 'sneakervault.jonas-haraldsson.workers.dev',
+};
+</script>
+<script>
+const { createClient } = supabase;
 
-  <!-- Nav -->
-  <nav>
-    <div class="nav-logo">SNEAKER<em>VAULT</em></div>
-    <div class="nav-right">
-      <button class="btn btn-ghost btn-sm" id="signout-btn">Sign out</button>
-      <button class="btn btn-primary" id="add-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        Add sneaker
-      </button>
-    </div>
-  </nav>
+const SUPABASE_URL      = CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
 
-  <!-- Stats bar -->
-  <div class="stats-bar">
-    <div class="stat">
-      <div class="stat-label">Collection</div>
-      <div class="stat-value" id="stat-count">0 pairs</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Resell value</div>
-      <div class="stat-value" id="stat-resell">€0</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Total cost</div>
-      <div class="stat-value" id="stat-cost">€0</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">ROI</div>
-      <div class="stat-value" id="stat-roi">—</div>
-    </div>
-  </div>
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <div class="search-wrap">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input class="search-input" id="search-input" type="search" placeholder="Search brand, name, colorway...">
-    </div>
-    <select class="sort-select" id="sort-select">
-      <option value="created_desc">Newest added</option>
-      <option value="created_asc">Oldest added</option>
-      <option value="brand_asc">Brand A–Z</option>
-      <option value="name_asc">Name A–Z</option>
-      <option value="year_desc">Year (newest)</option>
-      <option value="resell_desc">Resell price ↓</option>
-      <option value="release_desc">Release price ↓</option>
-      <option value="size_asc">Size</option>
-    </select>
-  </div>
+// ── State ─────────────────────────────────────
+let user       = null;
+let shoes      = [];
+let searchQ    = '';
+let sortBy     = 'created_desc';
+let brandF     = '';
+let typeF      = '';
+let activeTab  = 'vault';
+let photoDataUrl = null;
+let editingId  = null;
+let cameraStream = null;
+let facingMode = 'environment';
 
-  <!-- Filter chips -->
-  <div class="filters" id="filter-chips"></div>
+// ── Helpers ───────────────────────────────────
+const $ = id => document.getElementById(id);
 
-  <!-- Grid -->
-  <div class="grid-area">
-    <div class="shoe-grid" id="shoe-grid"></div>
-  </div>
+function fmtPrice(n) {
+  if (n === null || n === undefined || n === '') return '—';
+  return '€' + Number(n).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
 
-  <!-- Tab bar -->
-  <div class="tabbar">
-    <button class="tab on" id="tab-vault">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      <span>Vault</span>
-    </button>
-    <button class="tab" id="tab-stats">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span>Stats</span>
-    </button>
-  </div>
+function calcROI(release, resell) {
+  const r = Number(release), s = Number(resell);
+  if (!r || !s) return null;
+  return Math.round((s - r) / r * 100);
+}
 
-</div>
+function roiDisplay(release, resell) {
+  const roi = calcROI(release, resell);
+  if (roi === null) return null;
+  const profit = Number(resell) - Number(release);
+  return { pct: roi, profit, positive: roi >= 0 };
+}
 
-<!-- ── CAMERA SCREEN ─────────────────────────── -->
-<div id="camera-screen" style="display:none">
-  <div class="cam-top">
-    <button class="cam-cancel" id="cam-cancel">Cancel</button>
-    <div class="cam-title">PHOTOGRAPH SNEAKER</div>
-    <div style="width:56px"></div>
-  </div>
-  <div class="cam-view">
-    <video id="cam-video" autoplay playsinline muted></video>
-    <div class="cam-corner cam-tl"></div>
-    <div class="cam-corner cam-tr"></div>
-    <div class="cam-corner cam-bl"></div>
-    <div class="cam-corner cam-br"></div>
-    <div class="cam-hint">Frame the full shoe clearly</div>
-  </div>
-  <div class="cam-controls">
-    <label class="cam-gallery" for="gallery-input" aria-label="Choose from gallery">
-      <img id="gallery-thumb" src="" alt="" style="display:none">
-      <svg id="gallery-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-    </label>
-    <input type="file" id="gallery-input" accept="image/*" style="display:none">
-    <button class="cam-shutter" id="cam-shutter" aria-label="Take photo">
-      <div class="cam-shutter-inner"></div>
-    </button>
-    <button class="cam-flip" id="cam-flip" aria-label="Flip camera">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-    </button>
-  </div>
-  <canvas id="cam-canvas" style="display:none"></canvas>
-</div>
+let toastTimer;
+function toast(msg, type = '') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 2800);
+}
 
-<!-- ── ANALYZING SCREEN ──────────────────────── -->
-<div id="analyzing-screen" style="display:none">
-  <div class="an-img-wrap">
-    <img id="an-photo" src="" alt="Your sneaker photo">
-    <div class="an-overlay">
-      <div class="an-spinner"></div>
-      <div class="an-label">IDENTIFYING...</div>
-    </div>
-  </div>
-  <div class="an-body">
-    <div class="an-status-row">
-      <div class="an-dot"></div>
-      <div class="an-status-text" id="an-status">AI reading your photo...</div>
-    </div>
-    <div class="an-section-label">Detected info</div>
-    <div class="an-fields" id="an-fields">
-      <div class="an-field"><span class="an-key">Brand</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Model</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Colorway</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Type</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Release price</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Resell value</span><span class="an-val-ph"></span></div>
-    </div>
-  </div>
-</div>
+// ── Screen switching ──────────────────────────
+function showScreen(id) {
+  ['auth-screen','main-app','camera-screen','analyzing-screen','review-screen','stats-view']
+    .forEach(s => {
+      const el = $(s);
+      if (el) el.style.display = 'none';
+    });
+  const target = $(id);
+  if (target) target.style.display = id === 'stats-view' ? 'flex' : id === 'main-app' ? 'flex' : 'flex';
+}
 
-<!-- ── REVIEW SCREEN ─────────────────────────── -->
-<div id="review-screen" style="display:none">
-  <div class="rev-nav">
-    <button class="rev-back" id="rev-retake">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-      Retake
-    </button>
-    <button class="rev-save" id="rev-save">Save</button>
-  </div>
-  <div class="rev-body">
-    <div class="rev-img-wrap">
-      <img id="rev-photo" src="" alt="Your sneaker">
-      <div class="rev-photo-badge">Your photo</div>
-      <div class="rev-ai-badge">AI-filled</div>
-    </div>
+// ── Auth ──────────────────────────────────────
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { user = session.user; await enterApp(); }
+  else showScreen('auth-screen');
 
-    <div class="form-row">
-      <div class="field">
-        <label>Brand</label>
-        <input id="f-brand" type="text" placeholder="e.g. Adidas">
+  sb.auth.onAuthStateChange((_e, session) => {
+    if (session) { user = session.user; enterApp(); }
+    else { user = null; showScreen('auth-screen'); }
+  });
+}
+
+async function enterApp() {
+  showScreen('main-app');
+  await loadShoes();
+}
+
+// ── Auth switching (plain href links, no JS tabs) ────
+document.getElementById('go-signup').addEventListener('click', e => {
+  e.preventDefault();
+  document.getElementById('signin-box').style.display = 'none';
+  document.getElementById('signup-box').style.display = 'block';
+});
+document.getElementById('go-signin').addEventListener('click', e => {
+  e.preventDefault();
+  document.getElementById('signup-box').style.display = 'none';
+  document.getElementById('signin-box').style.display = 'block';
+});
+
+// Sign in
+document.getElementById('signin-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = document.getElementById('signin-email').value.trim();
+  const pass  = document.getElementById('signin-pass').value;
+  const err   = document.getElementById('signin-err');
+  const btn   = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Signing in...'; err.textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { err.textContent = error.message; }
+  btn.disabled = false; btn.textContent = 'Sign in';
+});
+
+// Sign up
+document.getElementById('signup-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = document.getElementById('signup-email').value.trim();
+  const pass  = document.getElementById('signup-pass').value;
+  const err   = document.getElementById('signup-err');
+  const btn   = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Creating account...'; err.textContent = '';
+  const { error } = await sb.auth.signUp({ email, password: pass });
+  if (error) { err.textContent = error.message; }
+  else { err.style.color = 'var(--green)'; err.textContent = 'Check your email to confirm your account!'; }
+  btn.disabled = false; btn.textContent = 'Create account';
+});
+
+$('signout-btn').addEventListener('click', () => sb.auth.signOut());
+
+// ── Data ──────────────────────────────────────
+async function loadShoes() {
+  const { data, error } = await sb.from('sneakers').select('*').order('created_at', { ascending: false });
+  if (error) { toast('Failed to load collection', 'error'); return; }
+  shoes = data || [];
+  render();
+}
+
+async function upsertShoe(shoe) {
+  const payload = {
+    user_id:       user.id,
+    brand:         shoe.brand,
+    name:          shoe.name,
+    type:          shoe.type || null,
+    size:          shoe.size || null,
+    color:         shoe.color || null,
+    year:          shoe.year ? Number(shoe.year) : null,
+    release_price: shoe.release_price ? Number(shoe.release_price) : null,
+    resell_price:  shoe.resell_price  ? Number(shoe.resell_price)  : null,
+    image_url:     shoe.image_url || null,
+  };
+
+  if (shoe.id) {
+    const { error } = await sb.from('sneakers').update(payload).eq('id', shoe.id);
+    if (error) { toast('Save failed', 'error'); return false; }
+    shoes = shoes.map(s => s.id === shoe.id ? { ...s, ...payload, id: shoe.id } : s);
+    toast('Sneaker updated ✓', 'success');
+  } else {
+    const { data, error } = await sb.from('sneakers').insert(payload).select().single();
+    if (error) { toast('Save failed', 'error'); return false; }
+    shoes = [data, ...shoes];
+    toast('Added to vault ✓', 'success');
+  }
+  render();
+  return true;
+}
+
+async function deleteShoe(id) {
+  const { error } = await sb.from('sneakers').delete().eq('id', id);
+  if (error) { toast('Delete failed', 'error'); return; }
+  shoes = shoes.filter(s => s.id !== id);
+  closeSheet();
+  toast('Sneaker removed', 'success');
+  render();
+}
+
+// ── Upload photo to Supabase Storage ─────────
+async function uploadPhoto(dataUrl) {
+  try {
+    const res  = await fetch(dataUrl);
+    const blob = await res.blob();
+    const ext  = blob.type.includes('png') ? 'png' : 'jpg';
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error } = await sb.storage.from('sneaker-photos').upload(path, blob, { contentType: blob.type });
+    if (error) throw error;
+    const { data } = sb.storage.from('sneaker-photos').getPublicUrl(path);
+    return data.publicUrl;
+  } catch {
+    // fallback: store data URL directly (for small images)
+    return dataUrl;
+  }
+}
+
+// ── AI identification ─────────────────────────
+async function identifyShoe(dataUrl) {
+  // Convert dataUrl to base64 payload
+  const base64 = dataUrl.split(',')[1];
+  const mimeType = dataUrl.split(';')[0].split(':')[1];
+
+  const prompt = `You are a sneaker expert. Analyze this image and identify the sneaker.
+Return ONLY a JSON object with these exact keys (use null for anything you cannot determine):
+{
+  "brand": "e.g. Adidas",
+  "name": "e.g. Samba OG",
+  "color": "e.g. White / Core Black",
+  "type": "one of: Lifestyle, Basketball, Running, Training, Skate, Trail, Collaboration, Limited Edition, Other",
+  "release_price": number in EUR or null,
+  "resell_price": number in EUR or null,
+  "confidence": "high | medium | low"
+}
+Return only the JSON object, no markdown, no explanation.`;
+
+  // Call our Cloudflare Worker — API key is stored securely there, not in this file
+  const response = await fetch(CONFIG.WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    })
+  });
+
+  if (!response.ok) throw new Error('API error ' + response.status);
+  const json = await response.json();
+  const text = json.content[0].text.trim();
+  // Strip possible markdown fences
+  const clean = text.replace(/^```json\s*/i,'').replace(/```$/,'').trim();
+  return JSON.parse(clean);
+}
+
+// ── Camera ────────────────────────────────────
+async function openCamera() {
+  editingId = null;
+  photoDataUrl = null;
+  showScreen('camera-screen');
+  await startCamera();
+}
+
+async function startCamera() {
+  stopCamera();
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
+    $('cam-video').srcObject = cameraStream;
+  } catch {
+    toast('Camera not available — choose from gallery', 'error');
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+}
+
+$('cam-cancel').addEventListener('click', () => {
+  stopCamera();
+  showScreen('main-app');
+});
+
+$('cam-shutter').addEventListener('click', () => captureFrame());
+
+$('cam-flip').addEventListener('click', async () => {
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  await startCamera();
+});
+
+$('gallery-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { photoDataUrl = ev.target.result; stopCamera(); goAnalyze(); };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+function captureFrame() {
+  const video  = $('cam-video');
+  const canvas = $('cam-canvas');
+  canvas.width  = video.videoWidth  || 1280;
+  canvas.height = video.videoHeight || 720;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  photoDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  stopCamera();
+  goAnalyze();
+}
+
+// ── Analyze screen ────────────────────────────
+async function goAnalyze() {
+  showScreen('analyzing-screen');
+  $('an-photo').src = photoDataUrl;
+
+  // Reset fields
+  $('an-fields').innerHTML = [
+    'Brand','Model','Colorway','Type','Release price','Resell value'
+  ].map(k => `<div class="an-field"><span class="an-key">${k}</span><span class="an-val-ph"></span></div>`).join('');
+
+  $('an-status').textContent = 'AI reading your photo...';
+
+  let result;
+  try {
+    result = await identifyShoe(photoDataUrl);
+  } catch (err) {
+    toast('Could not identify shoe — please fill in manually', 'error');
+    result = {};
+  }
+
+  // Animate fields appearing
+  const fieldData = [
+    { key: 'Brand',         val: result.brand },
+    { key: 'Model',         val: result.name },
+    { key: 'Colorway',      val: result.color },
+    { key: 'Type',          val: result.type },
+    { key: 'Release price', val: result.release_price ? fmtPrice(result.release_price) : null },
+    { key: 'Resell value',  val: result.resell_price  ? fmtPrice(result.resell_price)  : null },
+  ];
+
+  const container = $('an-fields');
+  container.innerHTML = '';
+  for (const [i, { key, val }] of fieldData.entries()) {
+    await new Promise(r => setTimeout(r, 180));
+    const row = document.createElement('div');
+    row.className = 'an-field';
+    row.innerHTML = `<span class="an-key">${key}</span>${
+      val ? `<span class="an-val">${val}</span>` : `<span class="an-val-ph"></span>`
+    }`;
+    container.appendChild(row);
+  }
+
+  $('an-status').textContent = result.brand
+    ? `Identified: ${result.brand} ${result.name || ''}`
+    : 'Could not identify — you can fill in manually';
+
+  // Transition to review after short delay
+  await new Promise(r => setTimeout(r, 900));
+  goReview(result);
+}
+
+// ── Review screen ─────────────────────────────
+function goReview(aiResult = {}) {
+  showScreen('review-screen');
+  $('rev-photo').src = photoDataUrl;
+
+  const fields = ['f-brand','f-name','f-color','f-type','f-size','f-release','f-resell','f-year'];
+  fields.forEach(id => {
+    const el = $(id);
+    el.value = '';
+    el.classList.remove('ai-filled');
+  });
+
+  const set = (id, val) => {
+    if (!val && val !== 0) return;
+    const el = $(id);
+    el.value = val;
+    el.classList.add('ai-filled');
+  };
+
+  set('f-brand',   aiResult.brand);
+  set('f-name',    aiResult.name);
+  set('f-color',   aiResult.color);
+  set('f-type',    aiResult.type);
+  set('f-release', aiResult.release_price);
+  set('f-resell',  aiResult.resell_price);
+
+  updateROI();
+  $('rev-err').textContent = '';
+
+  // If editing existing shoe, prefill id / size / year from existing record
+  if (editingId) {
+    const s = shoes.find(x => x.id === editingId);
+    if (s) {
+      set('f-size', s.size);
+      set('f-year', s.year);
+    }
+  }
+}
+
+['f-release','f-resell'].forEach(id => $(id).addEventListener('input', updateROI));
+
+function updateROI() {
+  const rel = Number($('f-release').value);
+  const res = Number($('f-resell').value);
+  const row = $('roi-row');
+  if (!rel || !res) { row.style.display = 'none'; return; }
+  const roi = calcROI(rel, res);
+  const profit = res - rel;
+  $('roi-value').textContent = `${roi >= 0 ? '+' : ''}${roi}% · ${profit >= 0 ? '+' : ''}${fmtPrice(profit)}`;
+  $('roi-value').className = 'roi-value ' + (roi >= 0 ? 'roi-pos' : 'roi-neg');
+  row.style.display = 'flex';
+}
+
+$('rev-retake').addEventListener('click', () => {
+  if (editingId) { showScreen('main-app'); editingId = null; return; }
+  openCamera();
+});
+
+$('rev-save').addEventListener('click', async () => {
+  const brand = $('f-brand').value.trim();
+  const name  = $('f-name').value.trim();
+  if (!brand || !name) { $('rev-err').textContent = 'Brand and name are required.'; return; }
+
+  const btn = $('rev-save');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  // Upload photo
+  let imageUrl = null;
+  if (photoDataUrl) {
+    imageUrl = await uploadPhoto(photoDataUrl);
+  } else if (editingId) {
+    const existing = shoes.find(s => s.id === editingId);
+    imageUrl = existing?.image_url || null;
+  }
+
+  const ok = await upsertShoe({
+    id:            editingId || null,
+    brand, name,
+    type:          $('f-type').value,
+    size:          $('f-size').value,
+    color:         $('f-color').value.trim(),
+    year:          $('f-year').value || null,
+    release_price: $('f-release').value || null,
+    resell_price:  $('f-resell').value  || null,
+    image_url:     imageUrl,
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Save';
+  if (ok) { editingId = null; photoDataUrl = null; showScreen('main-app'); }
+});
+
+// ── Add button (opens camera) ─────────────────
+$('add-btn').addEventListener('click', openCamera);
+
+// ── Render ────────────────────────────────────
+function render() {
+  renderStats();
+  renderFilters();
+  renderGrid();
+}
+
+function renderStats() {
+  const cost   = shoes.reduce((s, x) => s + Number(x.release_price || 0), 0);
+  const resell = shoes.reduce((s, x) => s + Number(x.resell_price  || 0), 0);
+  const roi    = cost > 0 ? Math.round((resell - cost) / cost * 100) : null;
+  $('stat-count').textContent  = shoes.length + (shoes.length === 1 ? ' pair' : ' pairs');
+  $('stat-cost').textContent   = fmtPrice(cost);
+  $('stat-resell').textContent = fmtPrice(resell);
+  $('stat-roi').textContent    = roi !== null ? (roi >= 0 ? '+' : '') + roi + '%' : '—';
+  $('stat-roi').className      = 'stat-value ' + (roi !== null ? (roi >= 0 ? 'roi-pos' : 'roi-neg') : '');
+}
+
+function renderFilters() {
+  const brands = [...new Set(shoes.map(s => s.brand))].filter(Boolean).sort();
+  const types  = [...new Set(shoes.map(s => s.type))].filter(Boolean).sort();
+  const fc = $('filter-chips');
+  fc.innerHTML = `
+    <button class="filter-chip ${!brandF && !typeF ? 'active' : ''}" data-brand="" data-type="">All</button>
+    ${brands.map(b => `<button class="filter-chip ${brandF === b ? 'active' : ''}" data-brand="${b}" data-type="">${b}</button>`).join('')}
+    ${types.length ? `<div class="filter-sep"></div>` : ''}
+    ${types.map(t => `<button class="filter-chip ${typeF === t ? 'active' : ''}" data-brand="" data-type="${t}">${t}</button>`).join('')}
+  `;
+  fc.querySelectorAll('.filter-chip').forEach(btn => btn.addEventListener('click', () => {
+    brandF = btn.dataset.brand;
+    typeF  = btn.dataset.type;
+    renderFilters();
+    renderGrid();
+  }));
+}
+
+function getFiltered() {
+  const q = searchQ.toLowerCase();
+  return shoes
+    .filter(s => {
+      const hit = !q || [s.brand, s.name, s.color, s.type].some(v => v?.toLowerCase().includes(q));
+      return hit && (!brandF || s.brand === brandF) && (!typeF || s.type === typeF);
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'brand_asc':    return (a.brand||'').localeCompare(b.brand||'');
+        case 'name_asc':     return (a.name||'').localeCompare(b.name||'');
+        case 'year_desc':    return (b.year||0) - (a.year||0);
+        case 'resell_desc':  return (b.resell_price||0) - (a.resell_price||0);
+        case 'release_desc': return (b.release_price||0) - (a.release_price||0);
+        case 'size_asc':     return parseFloat(a.size||0) - parseFloat(b.size||0);
+        case 'created_asc':  return new Date(a.created_at) - new Date(b.created_at);
+        default:             return new Date(b.created_at) - new Date(a.created_at);
+      }
+    });
+}
+
+function renderGrid() {
+  const list = getFiltered();
+  const grid = $('shoe-grid');
+
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">👟</div>
+      <h2>${shoes.length === 0 ? 'Vault is empty' : 'No results'}</h2>
+      <p>${shoes.length === 0 ? 'Tap + and photograph your first sneaker.' : 'Try adjusting your search or filters.'}</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(s => {
+    const roi = roiDisplay(s.release_price, s.resell_price);
+    return `<div class="shoe-card" data-id="${s.id}">
+      <div class="shoe-img-wrap">
+        ${s.image_url
+          ? `<img src="${s.image_url}" alt="${s.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          : ''}
+        <div class="shoe-img-ph" style="${s.image_url ? 'display:none' : ''}">👟</div>
+        ${s.image_url ? `<div class="shoe-ai-tag">AI</div>` : ''}
       </div>
-      <div class="field">
-        <label>Type</label>
-        <select id="f-type">
-          <option value="">Select...</option>
-          <option>Lifestyle</option>
-          <option>Basketball</option>
-          <option>Running</option>
-          <option>Training</option>
-          <option>Skate</option>
-          <option>Trail</option>
-          <option>Collaboration</option>
-          <option>Limited Edition</option>
-          <option>Other</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Shoe name</label>
-      <input id="f-name" type="text" placeholder="e.g. Samba OG">
-    </div>
-
-    <div class="form-row">
-      <div class="field">
-        <label>Colorway</label>
-        <input id="f-color" type="text" placeholder="e.g. White / Black">
-      </div>
-      <div class="field">
-        <label>EU Size</label>
-        <select id="f-size">
-          <option value="">Select...</option>
-          <option>35</option><option>35.5</option><option>36</option><option>36.5</option>
-          <option>37</option><option>37.5</option><option>38</option><option>38.5</option>
-          <option>39</option><option>39.5</option><option>40</option><option>40.5</option>
-          <option>41</option><option>41.5</option><option>42</option><option>42.5</option>
-          <option>43</option><option>43.5</option><option>44</option><option>44.5</option>
-          <option>45</option><option>45.5</option><option>46</option><option>46.5</option>
-          <option>47</option><option>47.5</option><option>48</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="field">
-        <label>Release price (€)</label>
-        <input id="f-release" type="number" placeholder="0" min="0" step="0.01">
-      </div>
-      <div class="field">
-        <label>Resell value (€)</label>
-        <input id="f-resell" type="number" placeholder="0" min="0" step="0.01">
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Year purchased</label>
-      <input id="f-year" type="number" placeholder="e.g. 2024" min="1980" max="2099">
-    </div>
-
-    <div class="roi-row" id="roi-row" style="display:none">
-      <span class="roi-label">ROI</span>
-      <span class="roi-value" id="roi-value"></span>
-    </div>
-
-    <div id="rev-err" class="form-err"></div>
-  </div>
-</div>
-
-<!-- ── DETAIL BOTTOM SHEET ───────────────────── -->
-<div id="sheet-overlay" style="display:none" aria-modal="true" role="dialog" aria-label="Sneaker detail">
-  <div class="sheet" id="detail-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-img-wrap">
-      <img id="sheet-photo" src="" alt="">
-      <div class="sheet-photo-ph" id="sheet-photo-ph">👟</div>
-    </div>
-    <div class="sheet-body">
-      <div class="sheet-brand" id="sheet-brand"></div>
-      <div class="sheet-name" id="sheet-name"></div>
-      <div class="sheet-sub" id="sheet-sub"></div>
-      <div class="sheet-grid">
-        <div class="sf"><div class="sf-l">EU Size</div><div class="sf-v" id="sheet-size">—</div></div>
-        <div class="sf"><div class="sf-l">Year</div><div class="sf-v" id="sheet-year">—</div></div>
-      </div>
-      <div class="sheet-prices">
-        <div class="sp-box">
-          <div class="sp-label">Release</div>
-          <div class="sp-value muted" id="sheet-release">—</div>
+      <div class="shoe-body">
+        <div class="shoe-brand">${s.brand || ''}</div>
+        <div class="shoe-name">${s.name}</div>
+        <div class="shoe-sub">${[s.type, s.color].filter(Boolean).join(' · ')}</div>
+        <div class="shoe-footer">
+          <span class="shoe-size">${s.size ? 'EU ' + s.size : ''}</span>
+          <div class="shoe-prices">
+            <div class="shoe-resell">${fmtPrice(s.resell_price)}</div>
+            ${s.release_price ? `<div class="shoe-retail">${fmtPrice(s.release_price)}</div>` : ''}
+            ${roi ? `<div class="shoe-roi ${roi.positive ? 'roi-pos' : 'roi-neg'}">${roi.positive ? '+' : ''}${roi.pct}%</div>` : ''}
+          </div>
         </div>
-        <div class="sp-box">
-          <div class="sp-label">Resell</div>
-          <div class="sp-value" id="sheet-resell">—</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.shoe-card').forEach(card =>
+    card.addEventListener('click', () => openSheet(card.dataset.id))
+  );
+}
+
+// ── Detail bottom sheet ───────────────────────
+let currentSheetId = null;
+
+function openSheet(id) {
+  const s = shoes.find(x => x.id === id);
+  if (!s) return;
+  currentSheetId = id;
+
+  if (s.image_url) {
+    $('sheet-photo').src = s.image_url;
+    $('sheet-photo').style.display = 'block';
+    $('sheet-photo-ph').style.display = 'none';
+  } else {
+    $('sheet-photo').style.display = 'none';
+    $('sheet-photo-ph').style.display = 'flex';
+  }
+
+  $('sheet-brand').textContent   = s.brand || '';
+  $('sheet-name').textContent    = s.name;
+  $('sheet-sub').textContent     = [s.type, s.color, s.year].filter(Boolean).join(' · ');
+  $('sheet-size').textContent    = s.size ? 'EU ' + s.size : '—';
+  $('sheet-year').textContent    = s.year || '—';
+  $('sheet-release').textContent = fmtPrice(s.release_price);
+  $('sheet-resell').textContent  = fmtPrice(s.resell_price);
+
+  const roi = roiDisplay(s.release_price, s.resell_price);
+  if (roi) {
+    $('sheet-roi').style.display = 'flex';
+    $('sheet-roi-val').textContent = `${roi.positive ? '+' : ''}${roi.pct}% · ${roi.positive ? '+' : ''}${fmtPrice(roi.profit)}`;
+    $('sheet-roi-val').className = 'roi-value ' + (roi.positive ? 'roi-pos' : 'roi-neg');
+  } else {
+    $('sheet-roi').style.display = 'none';
+  }
+
+  $('sheet-overlay').style.display = 'flex';
+}
+
+function closeSheet() {
+  $('sheet-overlay').style.display = 'none';
+  currentSheetId = null;
+}
+
+$('sheet-overlay').addEventListener('click', e => {
+  if (e.target === $('sheet-overlay')) closeSheet();
+});
+
+$('sheet-delete').addEventListener('click', () => {
+  if (!currentSheetId) return;
+  if (confirm('Delete this sneaker from your vault?')) deleteShoe(currentSheetId);
+});
+
+$('sheet-edit').addEventListener('click', () => {
+  if (!currentSheetId) return;
+  const s = shoes.find(x => x.id === currentSheetId);
+  if (!s) return;
+  editingId    = s.id;
+  photoDataUrl = s.image_url || null;
+  closeSheet();
+  // Go straight to review with existing data (no new photo)
+  goReview({
+    brand:         s.brand,
+    name:          s.name,
+    color:         s.color,
+    type:          s.type,
+    release_price: s.release_price,
+    resell_price:  s.resell_price,
+  });
+  // Also pre-fill size and year
+  setTimeout(() => {
+    if (s.size) { $('f-size').value = s.size; $('f-size').classList.add('ai-filled'); }
+    if (s.year) { $('f-year').value = s.year; $('f-year').classList.add('ai-filled'); }
+    // Show existing photo
+    if (s.image_url) $('rev-photo').src = s.image_url;
+  }, 50);
+});
+
+// ── Search & sort ─────────────────────────────
+$('search-input').addEventListener('input', e => { searchQ = e.target.value; renderGrid(); });
+$('sort-select').addEventListener('change', e => { sortBy = e.target.value; renderGrid(); });
+
+// ── Tab bar ───────────────────────────────────
+$('tab-vault').addEventListener('click', () => {
+  activeTab = 'vault';
+  $('tab-vault').classList.add('on');
+  $('tab-stats').classList.remove('on');
+  $('stats-view').style.display = 'none';
+  $('main-app').style.display   = 'flex';
+});
+
+$('tab-stats').addEventListener('click', () => {
+  activeTab = 'stats';
+  $('tab-stats').classList.add('on');
+  $('tab-vault').classList.remove('on');
+  renderStatsPage();
+  $('stats-view').style.display = 'flex';
+});
+
+// ── Stats page ────────────────────────────────
+function renderStatsPage() {
+  const cost   = shoes.reduce((s, x) => s + Number(x.release_price || 0), 0);
+  const resell = shoes.reduce((s, x) => s + Number(x.resell_price  || 0), 0);
+  const profit = resell - cost;
+  const roi    = cost > 0 ? Math.round(profit / cost * 100) : 0;
+
+  const byBrand = {};
+  shoes.forEach(s => { byBrand[s.brand] = (byBrand[s.brand] || 0) + 1; });
+  const sortedBrands = Object.entries(byBrand).sort((a,b) => b[1]-a[1]);
+  const maxBrand = sortedBrands[0]?.[1] || 1;
+
+  const byType = {};
+  shoes.forEach(s => { if (s.type) byType[s.type] = (byType[s.type] || 0) + 1; });
+
+  const topResell = [...shoes].sort((a,b) => (b.resell_price||0) - (a.resell_price||0)).slice(0, 3);
+
+  $('stats-page').innerHTML = `
+    <div class="stats-heading">Overview</div>
+    <div class="stats-card">
+      <div class="stats-row"><span class="stats-row-label">Total pairs</span><span class="stats-row-val">${shoes.length}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Total cost</span><span class="stats-row-val">${fmtPrice(cost)}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Total resell value</span><span class="stats-row-val">${fmtPrice(resell)}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Total profit</span><span class="stats-row-val ${profit >= 0 ? 'roi-pos' : 'roi-neg'}">${profit >= 0 ? '+' : ''}${fmtPrice(profit)}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Portfolio ROI</span><span class="stats-row-val ${roi >= 0 ? 'roi-pos' : 'roi-neg'}">${roi >= 0 ? '+' : ''}${roi}%</span></div>
+    </div>
+
+    <div class="stats-heading">By brand</div>
+    <div class="stats-card">
+      <div class="brand-bar-wrap">
+        ${sortedBrands.map(([brand, count]) => `
+          <div class="brand-bar-row">
+            <div class="brand-bar-label">${brand}</div>
+            <div class="brand-bar-track"><div class="brand-bar-fill" style="width:${Math.round(count/maxBrand*100)}%"></div></div>
+            <div class="brand-bar-count">${count}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    ${topResell.length ? `
+    <div class="stats-heading">Top resell value</div>
+    <div class="stats-card">
+      ${topResell.map(s => `
+        <div class="stats-row">
+          <span class="stats-row-label">${s.brand} ${s.name}</span>
+          <span class="stats-row-val">${fmtPrice(s.resell_price)}</span>
         </div>
-      </div>
-      <div class="sheet-roi" id="sheet-roi" style="display:none">
-        <span class="roi-label">ROI</span>
-        <span class="roi-value" id="sheet-roi-val"></span>
-      </div>
-    </div>
-    <div class="sheet-btns">
-      <button class="sbtn sbtn-ghost" id="sheet-delete">Delete</button>
-      <button class="sbtn sbtn-primary" id="sheet-edit">Edit sneaker</button>
-    </div>
-  </div>
-</div>
+      `).join('')}
+    </div>` : ''}
 
-<!-- ── STATS VIEW ────────────────────────────── -->
-<div id="stats-view" style="display:none">
-  <div class="stats-page" id="stats-page"></div>
-</div>
-
-<!-- Toast -->
-<div id="toast"></div>
-
-<script src="config.js"></script>
-<script type="module" src="app.js"></script>
-</body>
-</html>
-
-<!-- ── MAIN APP ──────────────────────────────── -->
-<div id="main-app" style="display:none">
-
-  <!-- Nav -->
-  <nav>
-    <div class="nav-logo">SNEAKER<em>VAULT</em></div>
-    <div class="nav-right">
-      <button class="btn btn-ghost btn-sm" id="signout-btn">Sign out</button>
-      <button class="btn btn-primary" id="add-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        Add sneaker
-      </button>
-    </div>
-  </nav>
-
-  <!-- Stats bar -->
-  <div class="stats-bar">
-    <div class="stat">
-      <div class="stat-label">Collection</div>
-      <div class="stat-value" id="stat-count">0 pairs</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Resell value</div>
-      <div class="stat-value" id="stat-resell">€0</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Total cost</div>
-      <div class="stat-value" id="stat-cost">€0</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">ROI</div>
-      <div class="stat-value" id="stat-roi">—</div>
-    </div>
-  </div>
-
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <div class="search-wrap">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input class="search-input" id="search-input" type="search" placeholder="Search brand, name, colorway...">
-    </div>
-    <select class="sort-select" id="sort-select">
-      <option value="created_desc">Newest added</option>
-      <option value="created_asc">Oldest added</option>
-      <option value="brand_asc">Brand A–Z</option>
-      <option value="name_asc">Name A–Z</option>
-      <option value="year_desc">Year (newest)</option>
-      <option value="resell_desc">Resell price ↓</option>
-      <option value="release_desc">Release price ↓</option>
-      <option value="size_asc">Size</option>
-    </select>
-  </div>
-
-  <!-- Filter chips -->
-  <div class="filters" id="filter-chips"></div>
-
-  <!-- Grid -->
-  <div class="grid-area">
-    <div class="shoe-grid" id="shoe-grid"></div>
-  </div>
-
-  <!-- Tab bar -->
-  <div class="tabbar">
-    <button class="tab on" id="tab-vault">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      <span>Vault</span>
-    </button>
-    <button class="tab" id="tab-stats">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span>Stats</span>
-    </button>
-  </div>
-
-</div>
-
-<!-- ── CAMERA SCREEN ─────────────────────────── -->
-<div id="camera-screen" style="display:none">
-  <div class="cam-top">
-    <button class="cam-cancel" id="cam-cancel">Cancel</button>
-    <div class="cam-title">PHOTOGRAPH SNEAKER</div>
-    <div style="width:56px"></div>
-  </div>
-  <div class="cam-view">
-    <video id="cam-video" autoplay playsinline muted></video>
-    <div class="cam-corner cam-tl"></div>
-    <div class="cam-corner cam-tr"></div>
-    <div class="cam-corner cam-bl"></div>
-    <div class="cam-corner cam-br"></div>
-    <div class="cam-hint">Frame the full shoe clearly</div>
-  </div>
-  <div class="cam-controls">
-    <label class="cam-gallery" for="gallery-input" aria-label="Choose from gallery">
-      <img id="gallery-thumb" src="" alt="" style="display:none">
-      <svg id="gallery-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-    </label>
-    <input type="file" id="gallery-input" accept="image/*" style="display:none">
-    <button class="cam-shutter" id="cam-shutter" aria-label="Take photo">
-      <div class="cam-shutter-inner"></div>
-    </button>
-    <button class="cam-flip" id="cam-flip" aria-label="Flip camera">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-    </button>
-  </div>
-  <canvas id="cam-canvas" style="display:none"></canvas>
-</div>
-
-<!-- ── ANALYZING SCREEN ──────────────────────── -->
-<div id="analyzing-screen" style="display:none">
-  <div class="an-img-wrap">
-    <img id="an-photo" src="" alt="Your sneaker photo">
-    <div class="an-overlay">
-      <div class="an-spinner"></div>
-      <div class="an-label">IDENTIFYING...</div>
-    </div>
-  </div>
-  <div class="an-body">
-    <div class="an-status-row">
-      <div class="an-dot"></div>
-      <div class="an-status-text" id="an-status">AI reading your photo...</div>
-    </div>
-    <div class="an-section-label">Detected info</div>
-    <div class="an-fields" id="an-fields">
-      <div class="an-field"><span class="an-key">Brand</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Model</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Colorway</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Type</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Release price</span><span class="an-val-ph"></span></div>
-      <div class="an-field"><span class="an-key">Resell value</span><span class="an-val-ph"></span></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── REVIEW SCREEN ─────────────────────────── -->
-<div id="review-screen" style="display:none">
-  <div class="rev-nav">
-    <button class="rev-back" id="rev-retake">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-      Retake
-    </button>
-    <button class="rev-save" id="rev-save">Save</button>
-  </div>
-  <div class="rev-body">
-    <div class="rev-img-wrap">
-      <img id="rev-photo" src="" alt="Your sneaker">
-      <div class="rev-photo-badge">Your photo</div>
-      <div class="rev-ai-badge">AI-filled</div>
-    </div>
-
-    <div class="form-row">
-      <div class="field">
-        <label>Brand</label>
-        <input id="f-brand" type="text" placeholder="e.g. Adidas">
-      </div>
-      <div class="field">
-        <label>Type</label>
-        <select id="f-type">
-          <option value="">Select...</option>
-          <option>Lifestyle</option>
-          <option>Basketball</option>
-          <option>Running</option>
-          <option>Training</option>
-          <option>Skate</option>
-          <option>Trail</option>
-          <option>Collaboration</option>
-          <option>Limited Edition</option>
-          <option>Other</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Shoe name</label>
-      <input id="f-name" type="text" placeholder="e.g. Samba OG">
-    </div>
-
-    <div class="form-row">
-      <div class="field">
-        <label>Colorway</label>
-        <input id="f-color" type="text" placeholder="e.g. White / Black">
-      </div>
-      <div class="field">
-        <label>EU Size</label>
-        <select id="f-size">
-          <option value="">Select...</option>
-          <option>35</option><option>35.5</option><option>36</option><option>36.5</option>
-          <option>37</option><option>37.5</option><option>38</option><option>38.5</option>
-          <option>39</option><option>39.5</option><option>40</option><option>40.5</option>
-          <option>41</option><option>41.5</option><option>42</option><option>42.5</option>
-          <option>43</option><option>43.5</option><option>44</option><option>44.5</option>
-          <option>45</option><option>45.5</option><option>46</option><option>46.5</option>
-          <option>47</option><option>47.5</option><option>48</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="field">
-        <label>Release price (€)</label>
-        <input id="f-release" type="number" placeholder="0" min="0" step="0.01">
-      </div>
-      <div class="field">
-        <label>Resell value (€)</label>
-        <input id="f-resell" type="number" placeholder="0" min="0" step="0.01">
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Year purchased</label>
-      <input id="f-year" type="number" placeholder="e.g. 2024" min="1980" max="2099">
-    </div>
-
-    <div class="roi-row" id="roi-row" style="display:none">
-      <span class="roi-label">ROI</span>
-      <span class="roi-value" id="roi-value"></span>
-    </div>
-
-    <div id="rev-err" class="form-err"></div>
-  </div>
-</div>
-
-<!-- ── DETAIL BOTTOM SHEET ───────────────────── -->
-<div id="sheet-overlay" style="display:none" aria-modal="true" role="dialog" aria-label="Sneaker detail">
-  <div class="sheet" id="detail-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-img-wrap">
-      <img id="sheet-photo" src="" alt="">
-      <div class="sheet-photo-ph" id="sheet-photo-ph">👟</div>
-    </div>
-    <div class="sheet-body">
-      <div class="sheet-brand" id="sheet-brand"></div>
-      <div class="sheet-name" id="sheet-name"></div>
-      <div class="sheet-sub" id="sheet-sub"></div>
-      <div class="sheet-grid">
-        <div class="sf"><div class="sf-l">EU Size</div><div class="sf-v" id="sheet-size">—</div></div>
-        <div class="sf"><div class="sf-l">Year</div><div class="sf-v" id="sheet-year">—</div></div>
-      </div>
-      <div class="sheet-prices">
-        <div class="sp-box">
-          <div class="sp-label">Release</div>
-          <div class="sp-value muted" id="sheet-release">—</div>
+    ${Object.keys(byType).length ? `
+    <div class="stats-heading">By type</div>
+    <div class="stats-card">
+      ${Object.entries(byType).sort((a,b) => b[1]-a[1]).map(([type, count]) => `
+        <div class="stats-row">
+          <span class="stats-row-label">${type}</span>
+          <span class="stats-row-val">${count}</span>
         </div>
-        <div class="sp-box">
-          <div class="sp-label">Resell</div>
-          <div class="sp-value" id="sheet-resell">—</div>
-        </div>
-      </div>
-      <div class="sheet-roi" id="sheet-roi" style="display:none">
-        <span class="roi-label">ROI</span>
-        <span class="roi-value" id="sheet-roi-val"></span>
-      </div>
-    </div>
-    <div class="sheet-btns">
-      <button class="sbtn sbtn-ghost" id="sheet-delete">Delete</button>
-      <button class="sbtn sbtn-primary" id="sheet-edit">Edit sneaker</button>
-    </div>
-  </div>
-</div>
+      `).join('')}
+    </div>` : ''}
+  `;
+}
 
-<!-- ── STATS VIEW ────────────────────────────── -->
-<div id="stats-view" style="display:none">
-  <div class="stats-page" id="stats-page"></div>
-</div>
+// ── Boot ──────────────────────────────────────
+initAuth();
 
-<!-- Toast -->
-<div id="toast"></div>
-
-<script src="config.js"></script>
-<script type="module" src="app.js"></script>
+</script>
 </body>
 </html>
