@@ -16,10 +16,6 @@
   <div class="auth-box">
     <div class="auth-logo">SNEAKER<em>VAULT</em></div>
     <p class="auth-sub">Your personal sneaker collection</p>
-    <div class="auth-tabs">
-      <button type="button" class="auth-tab active" data-tab="signin">Sign in</button>
-      <button type="button" class="auth-tab" data-tab="signup">Create account</button>
-    </div>
     <form id="auth-form">
       <div class="auth-field">
         <label for="auth-email">Email</label>
@@ -32,8 +28,284 @@
       <div id="auth-err"></div>
       <button id="auth-submit" type="submit" class="auth-btn">Sign in</button>
     </form>
+    <div style="text-align:center;margin-top:18px">
+      <span id="auth-toggle-label" style="font-size:13px;color:#888">No account yet?</span>
+      <button type="button" id="auth-toggle" style="font-size:13px;font-weight:700;color:#0d0d0d;background:none;border:none;cursor:pointer;margin-left:5px;font-family:inherit;text-decoration:underline">Create account</button>
+    </div>
   </div>
 </div>
+</div>
+
+<!-- ── MAIN APP ──────────────────────────────── -->
+<div id="main-app" style="display:none">
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-logo">SNEAKER<em>VAULT</em></div>
+    <div class="nav-right">
+      <button class="btn btn-ghost btn-sm" id="signout-btn">Sign out</button>
+      <button class="btn btn-primary" id="add-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Add sneaker
+      </button>
+    </div>
+  </nav>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-label">Collection</div>
+      <div class="stat-value" id="stat-count">0 pairs</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Resell value</div>
+      <div class="stat-value" id="stat-resell">€0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total cost</div>
+      <div class="stat-value" id="stat-cost">€0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">ROI</div>
+      <div class="stat-value" id="stat-roi">—</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" id="search-input" type="search" placeholder="Search brand, name, colorway...">
+    </div>
+    <select class="sort-select" id="sort-select">
+      <option value="created_desc">Newest added</option>
+      <option value="created_asc">Oldest added</option>
+      <option value="brand_asc">Brand A–Z</option>
+      <option value="name_asc">Name A–Z</option>
+      <option value="year_desc">Year (newest)</option>
+      <option value="resell_desc">Resell price ↓</option>
+      <option value="release_desc">Release price ↓</option>
+      <option value="size_asc">Size</option>
+    </select>
+  </div>
+
+  <!-- Filter chips -->
+  <div class="filters" id="filter-chips"></div>
+
+  <!-- Grid -->
+  <div class="grid-area">
+    <div class="shoe-grid" id="shoe-grid"></div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tabbar">
+    <button class="tab on" id="tab-vault">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Vault</span>
+    </button>
+    <button class="tab" id="tab-stats">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Stats</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- ── CAMERA SCREEN ─────────────────────────── -->
+<div id="camera-screen" style="display:none">
+  <div class="cam-top">
+    <button class="cam-cancel" id="cam-cancel">Cancel</button>
+    <div class="cam-title">PHOTOGRAPH SNEAKER</div>
+    <div style="width:56px"></div>
+  </div>
+  <div class="cam-view">
+    <video id="cam-video" autoplay playsinline muted></video>
+    <div class="cam-corner cam-tl"></div>
+    <div class="cam-corner cam-tr"></div>
+    <div class="cam-corner cam-bl"></div>
+    <div class="cam-corner cam-br"></div>
+    <div class="cam-hint">Frame the full shoe clearly</div>
+  </div>
+  <div class="cam-controls">
+    <label class="cam-gallery" for="gallery-input" aria-label="Choose from gallery">
+      <img id="gallery-thumb" src="" alt="" style="display:none">
+      <svg id="gallery-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+    </label>
+    <input type="file" id="gallery-input" accept="image/*" style="display:none">
+    <button class="cam-shutter" id="cam-shutter" aria-label="Take photo">
+      <div class="cam-shutter-inner"></div>
+    </button>
+    <button class="cam-flip" id="cam-flip" aria-label="Flip camera">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+    </button>
+  </div>
+  <canvas id="cam-canvas" style="display:none"></canvas>
+</div>
+
+<!-- ── ANALYZING SCREEN ──────────────────────── -->
+<div id="analyzing-screen" style="display:none">
+  <div class="an-img-wrap">
+    <img id="an-photo" src="" alt="Your sneaker photo">
+    <div class="an-overlay">
+      <div class="an-spinner"></div>
+      <div class="an-label">IDENTIFYING...</div>
+    </div>
+  </div>
+  <div class="an-body">
+    <div class="an-status-row">
+      <div class="an-dot"></div>
+      <div class="an-status-text" id="an-status">AI reading your photo...</div>
+    </div>
+    <div class="an-section-label">Detected info</div>
+    <div class="an-fields" id="an-fields">
+      <div class="an-field"><span class="an-key">Brand</span><span class="an-val-ph"></span></div>
+      <div class="an-field"><span class="an-key">Model</span><span class="an-val-ph"></span></div>
+      <div class="an-field"><span class="an-key">Colorway</span><span class="an-val-ph"></span></div>
+      <div class="an-field"><span class="an-key">Type</span><span class="an-val-ph"></span></div>
+      <div class="an-field"><span class="an-key">Release price</span><span class="an-val-ph"></span></div>
+      <div class="an-field"><span class="an-key">Resell value</span><span class="an-val-ph"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── REVIEW SCREEN ─────────────────────────── -->
+<div id="review-screen" style="display:none">
+  <div class="rev-nav">
+    <button class="rev-back" id="rev-retake">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      Retake
+    </button>
+    <button class="rev-save" id="rev-save">Save</button>
+  </div>
+  <div class="rev-body">
+    <div class="rev-img-wrap">
+      <img id="rev-photo" src="" alt="Your sneaker">
+      <div class="rev-photo-badge">Your photo</div>
+      <div class="rev-ai-badge">AI-filled</div>
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label>Brand</label>
+        <input id="f-brand" type="text" placeholder="e.g. Adidas">
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <select id="f-type">
+          <option value="">Select...</option>
+          <option>Lifestyle</option>
+          <option>Basketball</option>
+          <option>Running</option>
+          <option>Training</option>
+          <option>Skate</option>
+          <option>Trail</option>
+          <option>Collaboration</option>
+          <option>Limited Edition</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Shoe name</label>
+      <input id="f-name" type="text" placeholder="e.g. Samba OG">
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label>Colorway</label>
+        <input id="f-color" type="text" placeholder="e.g. White / Black">
+      </div>
+      <div class="field">
+        <label>EU Size</label>
+        <select id="f-size">
+          <option value="">Select...</option>
+          <option>35</option><option>35.5</option><option>36</option><option>36.5</option>
+          <option>37</option><option>37.5</option><option>38</option><option>38.5</option>
+          <option>39</option><option>39.5</option><option>40</option><option>40.5</option>
+          <option>41</option><option>41.5</option><option>42</option><option>42.5</option>
+          <option>43</option><option>43.5</option><option>44</option><option>44.5</option>
+          <option>45</option><option>45.5</option><option>46</option><option>46.5</option>
+          <option>47</option><option>47.5</option><option>48</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label>Release price (€)</label>
+        <input id="f-release" type="number" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label>Resell value (€)</label>
+        <input id="f-resell" type="number" placeholder="0" min="0" step="0.01">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Year purchased</label>
+      <input id="f-year" type="number" placeholder="e.g. 2024" min="1980" max="2099">
+    </div>
+
+    <div class="roi-row" id="roi-row" style="display:none">
+      <span class="roi-label">ROI</span>
+      <span class="roi-value" id="roi-value"></span>
+    </div>
+
+    <div id="rev-err" class="form-err"></div>
+  </div>
+</div>
+
+<!-- ── DETAIL BOTTOM SHEET ───────────────────── -->
+<div id="sheet-overlay" style="display:none" aria-modal="true" role="dialog" aria-label="Sneaker detail">
+  <div class="sheet" id="detail-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-img-wrap">
+      <img id="sheet-photo" src="" alt="">
+      <div class="sheet-photo-ph" id="sheet-photo-ph">👟</div>
+    </div>
+    <div class="sheet-body">
+      <div class="sheet-brand" id="sheet-brand"></div>
+      <div class="sheet-name" id="sheet-name"></div>
+      <div class="sheet-sub" id="sheet-sub"></div>
+      <div class="sheet-grid">
+        <div class="sf"><div class="sf-l">EU Size</div><div class="sf-v" id="sheet-size">—</div></div>
+        <div class="sf"><div class="sf-l">Year</div><div class="sf-v" id="sheet-year">—</div></div>
+      </div>
+      <div class="sheet-prices">
+        <div class="sp-box">
+          <div class="sp-label">Release</div>
+          <div class="sp-value muted" id="sheet-release">—</div>
+        </div>
+        <div class="sp-box">
+          <div class="sp-label">Resell</div>
+          <div class="sp-value" id="sheet-resell">—</div>
+        </div>
+      </div>
+      <div class="sheet-roi" id="sheet-roi" style="display:none">
+        <span class="roi-label">ROI</span>
+        <span class="roi-value" id="sheet-roi-val"></span>
+      </div>
+    </div>
+    <div class="sheet-btns">
+      <button class="sbtn sbtn-ghost" id="sheet-delete">Delete</button>
+      <button class="sbtn sbtn-primary" id="sheet-edit">Edit sneaker</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── STATS VIEW ────────────────────────────── -->
+<div id="stats-view" style="display:none">
+  <div class="stats-page" id="stats-page"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
 
 <!-- ── MAIN APP ──────────────────────────────── -->
 <div id="main-app" style="display:none">
