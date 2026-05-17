@@ -606,7 +606,7 @@ nav {
 const CONFIG = {
   SUPABASE_URL:      'https://gkukqcjusapgmqxbkdub.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdWtxY2p1c2FwZ21xeGJrZHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDI4NDIsImV4cCI6MjA5NDYxODg0Mn0.bUDh70Z1gvCLyG3MMIMFjYHKliDlsi2JsOAmxBY-DPo',
-  WORKER_URL: 'sneakervault.jonas-haraldsson.workers.dev',
+  WORKER_URL: 'https://sneakervault.jonas-haraldsson.workers.dev',
 };
 </script>
 <script>
@@ -813,25 +813,42 @@ async function identifyShoe(dataUrl) {
   const base64 = dataUrl.split(',')[1];
   const mimeType = dataUrl.split(';')[0].split(':')[1];
 
-  const prompt = `You are a sneaker expert. Analyze this image and identify the sneaker.
-Return ONLY a JSON object with these exact keys (use null for anything you cannot determine):
+  const prompt = `You are a world-class sneaker expert with encyclopedic knowledge of every sneaker ever made — mainline models, collaborations, designer sub-brands, limited editions, and regional releases.
+
+Examine this image carefully and identify the sneaker. Study:
+- The overall silhouette and profile shape
+- Midsole: shape, thickness, material, colour
+- Upper: mesh panels, leather/suede overlays, stitching, perforations — note that colours may appear darker or lighter in photos due to lighting
+- Logo placement: three stripes (Adidas), swoosh (Nike), N logo (New Balance), etc.
+- Heel counter shape and any text/logo there
+- Toe box shape and lacing system
+- Sub-brand indicators: Y-3, Fear of God, Yeezy, Off-White, Travis Scott, Salehe Bembury, Union, Comme des Garçons, etc.
+
+IMPORTANT:
+- Always make your best guess — never return null for brand or name if a shoe is visible
+- Colours can look different in photos — a dark brown upper may appear almost black, a grey may look white, etc. Consider this when identifying colorways
+- Be specific about collaborations: "Adidas Fear of God Athletics II" not "Adidas", "Nike x Off-White Dunk Low" not "Nike Dunk"
+- The Fear of God x Adidas Athletics II for example has: a low-profile rounded silhouette, three subtle stripes on the side, a thick sculptural white midsole, minimalist mesh/nubuck upper, and a small spherical heel detail
+- For prices give your best estimate in EUR — do not return null unless you truly have no idea
+- The shoe may be worn or photographed at an angle — identify it anyway
+
+Return ONLY a valid JSON object, no markdown, no explanation:
 {
-  "brand": "e.g. Adidas",
-  "name": "e.g. Samba OG",
-  "color": "e.g. White / Core Black",
+  "brand": "Full brand name e.g. Adidas Fear of God",
+  "name": "Full model name e.g. Athletics II",
+  "color": "e.g. Brown / Core Black / White",
   "type": "one of: Lifestyle, Basketball, Running, Training, Skate, Trail, Collaboration, Limited Edition, Other",
-  "release_price": number in EUR or null,
-  "resell_price": number in EUR or null,
+  "release_price": number in EUR,
+  "resell_price": number in EUR,
   "confidence": "high | medium | low"
-}
-Return only the JSON object, no markdown, no explanation.`;
+}`;
 
   // Call our Cloudflare Worker — API key is stored securely there, not in this file
   const response = await fetch(CONFIG.WORKER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-opus-4-5',
+      model: 'claude-opus-4-5-20251101',
       max_tokens: 512,
       messages: [{
         role: 'user',
