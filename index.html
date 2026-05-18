@@ -787,6 +787,48 @@ async function loadShoes(attempt = 1) {
   }
   shoes = data || [];
   render();
+  loadImagesInBackground();
+}
+
+async function loadImagesInBackground() {
+  // Load images in batches of 5 to avoid timeouts
+  const shoesWithoutImages = shoes.filter(s => !s.image_url);
+  const batchSize = 5;
+  for (let i = 0; i < shoesWithoutImages.length; i += batchSize) {
+    const batch = shoesWithoutImages.slice(i, i + batchSize);
+    const ids = batch.map(s => s.id);
+    const { data } = await sb.from('sneakers').select('id,image_url').in('id', ids);
+    if (data) {
+      data.forEach(row => {
+        const shoe = shoes.find(s => s.id === row.id);
+        if (shoe && row.image_url) {
+          shoe.image_url = row.image_url;
+          // Update the card image in the DOM directly
+          const card = document.querySelector(`.shoe-card[data-id="${row.id}"] .shoe-img-ph`);
+          if (card && row.image_url) {
+            const img = document.createElement('img');
+            img.src = row.image_url;
+            img.alt = shoe.name;
+            img.loading = 'lazy';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.display = 'block';
+            img.onerror = () => img.remove();
+            card.parentNode.insertBefore(img, card);
+            card.style.display = 'none';
+            // Add AI tag
+            const tag = document.createElement('div');
+            tag.className = 'shoe-ai-tag';
+            tag.textContent = 'AI';
+            card.parentNode.appendChild(tag);
+          }
+        }
+      });
+    }
+    // Small pause between batches
+    await new Promise(r => setTimeout(r, 300));
+  }
 }
 
 async function upsertShoe(shoe) {
