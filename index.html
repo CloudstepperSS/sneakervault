@@ -317,6 +317,10 @@ nav {
           <label for="signup-pass">Password</label>
           <input id="signup-pass" type="password" placeholder="Min. 6 characters" required minlength="6">
         </div>
+        <div class="auth-field">
+          <label for="signup-invite">Invite code</label>
+          <input id="signup-invite" type="text" placeholder="Enter invite code" required autocomplete="off">
+        </div>
         <div id="signup-err" style="font-size:12px;color:#c0392b;min-height:18px;margin-bottom:10px"></div>
         <button type="submit" class="auth-btn">Create account</button>
       </form>
@@ -535,13 +539,18 @@ nav {
     </div>
 
     <div class="field">
-      <label>Year purchased</label>
+      <label>Release year</label>
       <input id="f-year" type="number" placeholder="e.g. 2024" min="1980" max="2099">
     </div>
 
     <div class="roi-row" id="roi-row" style="display:none">
       <span class="roi-label">ROI</span>
       <span class="roi-value" id="roi-value"></span>
+    </div>
+
+    <div class="field">
+      <label>Comments</label>
+      <textarea id="f-comments" placeholder="Add your notes about this shoe..." style="background:var(--s1);border:1px solid var(--b1);color:var(--t1);font-family:var(--sans);font-size:14px;padding:11px 13px;border-radius:10px;width:100%;resize:vertical;min-height:80px;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--t1)'" onblur="this.style.borderColor='var(--b1)'"></textarea>
     </div>
 
     <div id="rev-err" class="form-err"></div>
@@ -562,7 +571,7 @@ nav {
       <div class="sheet-sub" id="sheet-sub"></div>
       <div class="sheet-grid">
         <div class="sf"><div class="sf-l">EU Size</div><div class="sf-v" id="sheet-size">—</div></div>
-        <div class="sf"><div class="sf-l">Year</div><div class="sf-v" id="sheet-year">—</div></div>
+        <div class="sf"><div class="sf-l">Release year</div><div class="sf-v" id="sheet-year">—</div></div>
       </div>
       <div class="sheet-prices">
         <div class="sp-box">
@@ -578,6 +587,10 @@ nav {
         <span class="roi-label">ROI</span>
         <span class="roi-value" id="sheet-roi-val"></span>
       </div>
+    </div>
+    <div class="sheet-comments" id="sheet-comments" style="display:none;margin:0 20px 10px;background:var(--s1);border-radius:9px;padding:12px 14px">
+      <div style="font-size:9px;font-family:'Space Mono',monospace;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Comments</div>
+      <div id="sheet-comments-text" style="font-size:13px;color:#444;line-height:1.5"></div>
     </div>
     <div class="sheet-btns">
       <button class="sbtn sbtn-ghost" id="sheet-delete">Delete</button>
@@ -729,15 +742,22 @@ document.getElementById('signin-form').addEventListener('submit', async e => {
 });
 
 // Sign up
+const INVITE_CODE = 'VAULT2024';
 document.getElementById('signup-form').addEventListener('submit', async e => {
   e.preventDefault();
-  const email = document.getElementById('signup-email').value.trim();
-  const pass  = document.getElementById('signup-pass').value;
-  const err   = document.getElementById('signup-err');
-  const btn   = e.target.querySelector('button[type=submit]');
+  const email  = document.getElementById('signup-email').value.trim();
+  const pass   = document.getElementById('signup-pass').value;
+  const invite = document.getElementById('signup-invite').value.trim();
+  const err    = document.getElementById('signup-err');
+  const btn    = e.target.querySelector('button[type=submit]');
+  if (invite.toUpperCase() !== INVITE_CODE) {
+    err.style.color = '#c0392b';
+    err.textContent = 'Invalid invite code.';
+    return;
+  }
   btn.disabled = true; btn.textContent = 'Creating account...'; err.textContent = '';
   const { error } = await sb.auth.signUp({ email, password: pass });
-  if (error) { err.textContent = error.message; }
+  if (error) { err.style.color = '#c0392b'; err.textContent = error.message; }
   else { err.style.color = 'var(--green)'; err.textContent = 'Check your email to confirm your account!'; }
   btn.disabled = false; btn.textContent = 'Create account';
 });
@@ -764,6 +784,7 @@ async function upsertShoe(shoe) {
     release_price: shoe.release_price ? Number(shoe.release_price) : null,
     resell_price:  shoe.resell_price  ? Number(shoe.resell_price)  : null,
     image_url:     shoe.image_url || null,
+    comments:      shoe.comments || null,
   };
 
   if (shoe.id) {
@@ -859,6 +880,7 @@ Return ONLY a valid JSON object, no markdown, no explanation:
   "type": "one of: Lifestyle, Basketball, Running, Training, Skate, Trail, Collaboration, Limited Edition, Other",
   "release_price": number in EUR,
   "resell_price": number in EUR,
+  "release_year": year the shoe was originally released as a number or null,
   "confidence": "high | medium | low"
 }`;
 
@@ -980,6 +1002,7 @@ async function goAnalyze() {
     { key: 'Model',         val: result.name },
     { key: 'Colorway',      val: result.color },
     { key: 'Type',          val: result.type },
+    { key: 'Release year',  val: result.release_year ? String(result.release_year) : null },
     { key: 'Release price', val: result.release_price ? fmtPrice(result.release_price) : null },
     { key: 'Resell value',  val: result.resell_price  ? fmtPrice(result.resell_price)  : null },
   ];
@@ -1030,16 +1053,21 @@ function goReview(aiResult = {}) {
   set('f-type',    aiResult.type);
   set('f-release', aiResult.release_price);
   set('f-resell',  aiResult.resell_price);
+  set('f-year',    aiResult.release_year);
 
   updateROI();
   $('rev-err').textContent = '';
 
-  // If editing existing shoe, prefill id / size / year from existing record
+  // Clear comments field
+  $('f-comments').value = '';
+
+  // If editing existing shoe, prefill id / size / year / comments from existing record
   if (editingId) {
     const s = shoes.find(x => x.id === editingId);
     if (s) {
       set('f-size', s.size);
       set('f-year', s.year);
+      if (s.comments) { $('f-comments').value = s.comments; }
     }
   }
 }
@@ -1091,6 +1119,7 @@ $('rev-save').addEventListener('click', async () => {
     release_price: $('f-release').value || null,
     resell_price:  $('f-resell').value  || null,
     image_url:     imageUrl,
+    comments:      $('f-comments').value.trim() || null,
   });
 
   btn.disabled = false;
@@ -1188,8 +1217,8 @@ function renderGrid() {
         <div class="shoe-footer">
           <span class="shoe-size">${s.size ? 'EU ' + s.size : ''}</span>
           <div class="shoe-prices">
-            <div class="shoe-resell">${fmtPrice(s.resell_price)}</div>
-            ${s.release_price ? `<div class="shoe-retail">${fmtPrice(s.release_price)}</div>` : ''}
+            <div class="shoe-resell">${fmtPrice(s.release_price)}</div>
+            ${s.resell_price ? `<div class="shoe-retail">resell ${fmtPrice(s.resell_price)}</div>` : ''}
             ${roi ? `<div class="shoe-roi ${roi.positive ? 'roi-pos' : 'roi-neg'}">${roi.positive ? '+' : ''}${roi.pct}%</div>` : ''}
           </div>
         </div>
@@ -1234,6 +1263,12 @@ function openSheet(id) {
     $('sheet-roi-val').className = 'roi-value ' + (roi.positive ? 'roi-pos' : 'roi-neg');
   } else {
     $('sheet-roi').style.display = 'none';
+  }
+  if (s.comments) {
+    $('sheet-comments').style.display = 'block';
+    $('sheet-comments-text').textContent = s.comments;
+  } else {
+    $('sheet-comments').style.display = 'none';
   }
 
   $('sheet-overlay').style.display = 'flex';
