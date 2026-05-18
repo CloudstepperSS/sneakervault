@@ -767,7 +767,16 @@ $('signout-btn').addEventListener('click', () => sb.auth.signOut());
 // ── Data ──────────────────────────────────────
 async function loadShoes() {
   const { data, error } = await sb.from('sneakers').select('*').order('created_at', { ascending: false });
-  if (error) { toast('Failed to load collection', 'error'); return; }
+  if (error) {
+    const msg = error.message || error.code || JSON.stringify(error);
+    // Show full error on screen
+    const errDiv = document.createElement('div');
+    errDiv.style = 'position:fixed;top:80px;left:16px;right:16px;background:#fee;border:1px solid #c00;border-radius:10px;padding:14px;font-size:12px;font-family:monospace;z-index:9999;word-break:break-all;color:#c00';
+    errDiv.textContent = 'Load error: ' + msg;
+    document.body.appendChild(errDiv);
+    toast('Failed to load: ' + msg, 'error');
+    return;
+  }
   shoes = data || [];
   render();
 }
@@ -1132,9 +1141,15 @@ $('add-btn').addEventListener('click', openCamera);
 
 // ── Render ────────────────────────────────────
 function render() {
-  renderStats();
-  renderFilters();
-  renderGrid();
+  try { renderStats(); } catch(e) { console.error('renderStats failed:', e); }
+  try { renderFilters(); } catch(e) { console.error('renderFilters failed:', e); }
+  try { renderGrid(); } catch(e) {
+    console.error('renderGrid failed:', e);
+    const errDiv = document.createElement('div');
+    errDiv.style = 'position:fixed;top:80px;left:16px;right:16px;background:#fee;border:1px solid #c00;border-radius:10px;padding:14px;font-size:12px;font-family:monospace;z-index:9999;word-break:break-all;color:#c00';
+    errDiv.textContent = 'Render error: ' + e.message;
+    document.body.appendChild(errDiv);
+  }
 }
 
 function renderStats() {
