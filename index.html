@@ -592,6 +592,11 @@ nav {
       <div style="font-size:9px;font-family:'Space Mono',monospace;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Comments</div>
       <div id="sheet-comments-text" style="font-size:13px;color:#444;line-height:1.5"></div>
     </div>
+    <div style="padding:0 20px 10px">
+      <button id="sheet-refresh-price" style="width:100%;padding:12px;border-radius:11px;font-size:13px;font-weight:600;border:1px solid rgba(0,0,0,0.12);background:#f7f7f5;color:#0d0d0d;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
+        <span id="sheet-refresh-icon">↻</span> Refresh resell price
+      </button>
+    </div>
     <div class="sheet-btns">
       <button class="sbtn sbtn-ghost" id="sheet-delete">Delete</button>
       <button class="sbtn sbtn-primary" id="sheet-edit">Edit sneaker</button>
@@ -874,17 +879,36 @@ async function deleteShoe(id) {
 // ── Upload photo to Supabase Storage ─────────
 async function uploadPhoto(dataUrl) {
   try {
+    // Convert dataUrl to blob
     const res  = await fetch(dataUrl);
     const blob = await res.blob();
     const ext  = blob.type.includes('png') ? 'png' : 'jpg';
     const path = `${user.id}/${Date.now()}.${ext}`;
-    const { error } = await sb.storage.from('sneaker-photos').upload(path, blob, { contentType: blob.type });
+    const { error } = await sb.storage.from('sneaker-photos').upload(path, blob, { contentType: blob.type, upsert: true });
     if (error) throw error;
     const { data } = sb.storage.from('sneaker-photos').getPublicUrl(path);
     return data.publicUrl;
-  } catch {
-    // fallback: store data URL directly (for small images)
+  } catch(e) {
+    console.error('Storage upload failed:', e);
+    // fallback: store resized base64
     return dataUrl;
+  }
+}
+
+async function migratePhotoToStorage(shoe) {
+  // Only migrate if image_url is a base64 data URL
+  if (!shoe.image_url || !shoe.image_url.startsWith('data:')) return null;
+  try {
+    const res  = await fetch(shoe.image_url);
+    const blob = await res.blob();
+    const path = `${user.id}/${shoe.id}.jpg`;
+    const { error } = await sb.storage.from('sneaker-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    if (error) throw error;
+    const { data } = sb.storage.from('sneaker-photos').getPublicUrl(path);
+    return data.publicUrl;
+  } catch(e) {
+    console.error('Migration failed for', shoe.id, e);
+    return null;
   }
 }
 
@@ -971,6 +995,38 @@ Return ONLY a valid JSON object, no markdown, no explanation:
   // Strip possible markdown fences
   const clean = text.replace(/^```json\s*/i,'').replace(/```$/,'').trim();
   return JSON.parse(clean);
+}
+
+// ── AI price refresh ──────────────────────────
+async function refreshResellPrice(shoe) {
+  const prompt = `You are a sneaker market expert. I need the current resell market price in EUR for this sneaker:
+
+Brand: ${shoe.brand}
+Model: ${shoe.name}
+Colorway: ${shoe.color || 'unknown'}
+Size: EU ${shoe.size || 'unknown'}
+
+Research the current resell value on platforms like Klekt, StockX, GOAT, and Vinted in Europe.
+Return ONLY a JSON object, no markdown, no explanation:
+{
+  "resell_price": current market resell price as a number in EUR,
+  "source": "brief note e.g. Klekt avg ~€220, StockX ~€210",
+  "confidence": "high | medium | low"
+}`;
+
+  const response = await fetch(CONFIG.WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: 256,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!response.ok) throw new Error('API ' + response.status);
+  const json = await response.json();
+  const text = json.content[0].text.trim().replace(/^```json\s*/i,'').replace(/```$/,'').trim();
+  return JSON.parse(text);
 }
 
 // ── Camera ────────────────────────────────────
@@ -1353,6 +1409,44 @@ function closeSheet() {
 
 $('sheet-overlay').addEventListener('click', e => {
   if (e.target === $('sheet-overlay')) closeSheet();
+});
+
+$('sheet-refresh-price').addEventListener('click', async () => {
+  const s = shoes.find(x => x.id === currentSheetId);
+  if (!s) return;
+  const btn  = $('sheet-refresh-price');
+  const icon = $('sheet-refresh-icon');
+  btn.disabled = true;
+  icon.textContent = '⟳';
+  icon.style.animation = 'spin .8s linear infinite';
+  btn.childNodes[1].textContent = ' Fetching latest price...';
+  try {
+    const result = await refreshResellPrice(s);
+    if (result.resell_price) {
+      // Update in DB
+      await sb.from('sneakers').update({ resell_price: result.resell_price }).eq('id', s.id);
+      // Update in memory
+      s.resell_price = result.resell_price;
+      // Update sheet display
+      $('sheet-resell').textContent = fmtPrice(result.resell_price);
+      const roi = roiDisplay(s.release_price, s.resell_price);
+      if (roi) {
+        $('sheet-roi').style.display = 'flex';
+        $('sheet-roi-val').textContent = `${roi.positive ? '+' : ''}${roi.pct}% · ${roi.positive ? '+' : ''}${fmtPrice(roi.profit)}`;
+        $('sheet-roi-val').className = 'roi-value ' + (roi.positive ? 'roi-pos' : 'roi-neg');
+      }
+      // Update grid card
+      renderGrid();
+      const note = result.source ? ' (' + result.source + ')' : '';
+      toast('Price updated to ' + fmtPrice(result.resell_price) + note, 'success');
+    }
+  } catch(e) {
+    toast('Price lookup failed: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  icon.style.animation = '';
+  icon.textContent = '↻';
+  btn.childNodes[1].textContent = ' Refresh resell price';
 });
 
 $('sheet-delete').addEventListener('click', () => {

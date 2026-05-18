@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SneakerVault — Migrate Images</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f7f7f5; font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .box { background: #fff; border: 1px solid rgba(0,0,0,0.12); border-radius: 20px; padding: 36px; width: 100%; max-width: 480px; }
+  .logo { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; letter-spacing: .1em; margin-bottom: 6px; }
+  .logo em { font-style: normal; border-bottom: 2px solid #0d0d0d; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; margin-top: 20px; }
+  p { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 20px; }
+  .btn { width: 100%; padding: 14px; background: #0d0d0d; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; border: none; border-radius: 11px; cursor: pointer; transition: opacity .15s; }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .progress-wrap { margin-top: 20px; display: none; }
+  .progress-label { font-size: 13px; color: #666; margin-bottom: 8px; font-family: 'Space Mono', monospace; }
+  .progress-bar { height: 6px; background: #f0f0ee; border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
+  .progress-fill { height: 100%; background: #0d0d0d; border-radius: 3px; transition: width .3s ease; width: 0%; }
+  .log { background: #f7f7f5; border-radius: 10px; padding: 14px; max-height: 280px; overflow-y: auto; font-family: 'Space Mono', monospace; font-size: 11px; line-height: 1.7; }
+  .log-item { padding: 2px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .log-item.ok { color: #1a7a3e; }
+  .log-item.skip { color: #aaa; }
+  .log-item.err { color: #c0392b; }
+  .log-item.info { color: #0d0d0d; font-weight: 700; }
+  .done-box { background: #f0fff4; border: 1px solid #a8e6bf; border-radius: 10px; padding: 16px; margin-top: 16px; display: none; text-align: center; }
+  .done-box h2 { font-size: 16px; color: #1a7a3e; margin-bottom: 6px; }
+  .done-box p { font-size: 13px; color: #444; margin-bottom: 12px; }
+  .done-box a { display: inline-block; background: #0d0d0d; color: #fff; padding: 10px 20px; border-radius: 9px; text-decoration: none; font-size: 13px; font-weight: 700; }
+  .auth-section { margin-bottom: 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 10px; font-family: 'Space Mono', monospace; color: #aaa; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+  .field input { width: 100%; background: #f7f7f5; border: 1px solid rgba(0,0,0,0.12); color: #0d0d0d; font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 11px 14px; border-radius: 10px; outline: none; }
+  .field input:focus { border-color: #0d0d0d; }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">SNEAKER<em>VAULT</em></div>
+  <h1>Image Migration Tool</h1>
+  <p>This tool moves all your shoe photos from the database into Supabase Storage. This makes the app significantly faster. It runs once and takes a few minutes.</p>
+
+  <div class="auth-section" id="auth-section">
+    <div class="field">
+      <label>Email</label>
+      <input id="email" type="email" placeholder="your@email.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="password" type="password" placeholder="••••••••">
+    </div>
+    <button class="btn" id="start-btn" onclick="startMigration()">Sign in & Start Migration</button>
+  </div>
+
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-label" id="progress-label">Starting...</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="done-box" id="done-box">
+    <h2>✓ Migration complete!</h2>
+    <p id="done-msg"></p>
+    <a href="https://cloudstepperss.github.io/sneakervault">Go to SneakerVault →</a>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gkukqcjusapgmqxbkdub.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdWtxY2p1c2FwZ21xeGJrZHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDI4NDIsImV4cCI6MjA5NDYxODg0Mn0.bUDh70Z1gvCLyG3MMIMFjYHKliDlsi2JsOAmxBY-DPo';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function log(msg, type = 'info') {
+  const el = document.getElementById('log');
+  const item = document.createElement('div');
+  item.className = 'log-item ' + type;
+  item.textContent = msg;
+  el.appendChild(item);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setProgress(current, total) {
+  const pct = total > 0 ? Math.round(current / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `Migrating... ${current} / ${total} (${pct}%)`;
+}
+
+async function startMigration() {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('start-btn');
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  // Sign in
+  const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
+  if (authError) {
+    alert('Sign in failed: ' + authError.message);
+    btn.disabled = false;
+    btn.textContent = 'Sign in & Start Migration';
+    return;
+  }
+
+  const user = authData.user;
+  document.getElementById('progress-wrap').style.display = 'block';
+  log('Signed in as ' + user.email, 'info');
+
+  // Fetch all shoes with base64 images in batches
+  log('Fetching your sneaker collection...', 'info');
+  let allShoes = [];
+  const batchSize = 20;
+  let from = 0;
+  while (true) {
+    const { data, error } = await sb.from('sneakers')
+      .select('id, brand, name, image_url')
+      .eq('user_id', user.id)
+      .range(from, from + batchSize - 1);
+    if (error) { log('Fetch error: ' + error.message, 'err'); break; }
+    if (!data || data.length === 0) break;
+    allShoes = allShoes.concat(data);
+    if (data.length < batchSize) break;
+    from += batchSize;
+  }
+
+  const toMigrate = allShoes.filter(s => s.image_url && s.image_url.startsWith('data:'));
+  const alreadyDone = allShoes.filter(s => s.image_url && !s.image_url.startsWith('data:')).length;
+  const noImage = allShoes.filter(s => !s.image_url).length;
+
+  log(`Found ${allShoes.length} sneakers total`, 'info');
+  log(`→ ${toMigrate.length} need migration`, 'info');
+  log(`→ ${alreadyDone} already using Storage`, 'skip');
+  log(`→ ${noImage} have no image`, 'skip');
+
+  if (toMigrate.length === 0) {
+    log('Nothing to migrate — all done!', 'ok');
+    showDone(0, 0, allShoes.length);
+    return;
+  }
+
+  let migrated = 0;
+  let failed   = 0;
+
+  for (let i = 0; i < toMigrate.length; i++) {
+    const shoe = toMigrate[i];
+    setProgress(i, toMigrate.length);
+    try {
+      // Convert base64 to blob
+      const res  = await fetch(shoe.image_url);
+      const blob = await res.blob();
+      const path = `${user.id}/${shoe.id}.jpg`;
+
+      // Upload to Storage
+      const { error: uploadErr } = await sb.storage
+        .from('sneaker-photos')
+        .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+
+      if (uploadErr) throw uploadErr;
+
+      // Get public URL
+      const { data: urlData } = sb.storage.from('sneaker-photos').getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+
+      // Update DB record
+      const { error: updateErr } = await sb.from('sneakers')
+        .update({ image_url: publicUrl })
+        .eq('id', shoe.id);
+
+      if (updateErr) throw updateErr;
+
+      migrated++;
+      log(`✓ ${shoe.brand} ${shoe.name}`, 'ok');
+    } catch(e) {
+      failed++;
+      log(`✗ ${shoe.brand} ${shoe.name}: ${e.message}`, 'err');
+    }
+
+    // Small pause to avoid rate limits
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  setProgress(toMigrate.length, toMigrate.length);
+  showDone(migrated, failed, allShoes.length);
+}
+
+function showDone(migrated, failed, total) {
+  document.getElementById('done-box').style.display = 'block';
+  document.getElementById('done-msg').textContent =
+    `${migrated} photos moved to Storage. ${failed > 0 ? failed + ' failed (you can run again to retry). ' : ''}Your vault is now faster!`;
+  document.getElementById('progress-label').textContent = 'Done!';
+}
+</script>
+</body>
+</html>
