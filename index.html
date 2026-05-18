@@ -941,9 +941,13 @@ async function goAnalyze() {
   try {
     result = await identifyShoe(photoDataUrl);
   } catch (err) {
-    console.error('AI identification error:', err);
-    $('an-status').textContent = 'Error: ' + err.message;
-    toast('AI error: ' + err.message, 'error');
+    const msg = err.message || 'Unknown error';
+    $('an-status').textContent = 'Error: ' + msg;
+    // Show full error visibly on screen for mobile debugging
+    const debugDiv = document.createElement('div');
+    debugDiv.style = 'background:#fee;border:1px solid #c00;border-radius:8px;padding:12px;margin:12px 0;font-size:12px;font-family:monospace;word-break:break-all;color:#c00';
+    debugDiv.textContent = 'Debug: ' + msg;
+    $('an-body') && $('an-body').prepend(debugDiv);
     result = {};
   }
 
