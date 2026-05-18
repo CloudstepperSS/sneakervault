@@ -766,7 +766,7 @@ $('signout-btn').addEventListener('click', () => sb.auth.signOut());
 
 // ── Data ──────────────────────────────────────
 async function loadShoes() {
-  const { data, error } = await sb.from('sneakers').select('id,brand,name,type,size,color,year,release_price,resell_price,image_url,comments,created_at').order('created_at', { ascending: false });
+  const { data, error } = await sb.from('sneakers').select('id,brand,name,type,size,color,year,release_price,resell_price,comments,created_at').order('created_at', { ascending: false });
   if (error) {
     const msg = error.message || error.code || JSON.stringify(error);
     // Show full error on screen
@@ -1219,11 +1219,7 @@ function renderGrid() {
     const roi = roiDisplay(s.release_price, s.resell_price);
     return `<div class="shoe-card" data-id="${s.id}">
       <div class="shoe-img-wrap">
-        ${s.image_url
-          ? `<img src="${s.image_url}" alt="${s.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-          : ''}
-        <div class="shoe-img-ph" style="${s.image_url ? 'display:none' : ''}">👟</div>
-        ${s.image_url ? `<div class="shoe-ai-tag">AI</div>` : ''}
+          <div class="shoe-img-ph">👟</div>
       </div>
       <div class="shoe-body">
         <div class="shoe-brand">${s.brand || ''}</div>
@@ -1249,10 +1245,20 @@ function renderGrid() {
 // ── Detail bottom sheet ───────────────────────
 let currentSheetId = null;
 
-function openSheet(id) {
+async function openSheet(id) {
   const s = shoes.find(x => x.id === id);
   if (!s) return;
   currentSheetId = id;
+
+  // Show placeholder while loading image
+  $('sheet-photo').style.display = 'none';
+  $('sheet-photo-ph').style.display = 'flex';
+
+  // Fetch image_url separately so it doesn't slow down the main list
+  if (!s.image_url) {
+    const { data } = await sb.from('sneakers').select('image_url').eq('id', id).single();
+    if (data?.image_url) s.image_url = data.image_url;
+  }
 
   if (s.image_url) {
     $('sheet-photo').src = s.image_url;
