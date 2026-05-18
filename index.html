@@ -765,11 +765,19 @@ document.getElementById('signup-form').addEventListener('submit', async e => {
 $('signout-btn').addEventListener('click', () => sb.auth.signOut());
 
 // ── Data ──────────────────────────────────────
-async function loadShoes() {
-  const { data, error } = await sb.from('sneakers').select('id,brand,name,type,size,color,year,release_price,resell_price,comments,created_at').order('created_at', { ascending: false });
+async function loadShoes(attempt = 1) {
+  const { data, error } = await sb.from('sneakers')
+    .select('id,brand,name,type,size,color,year,release_price,resell_price,comments,created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
   if (error) {
+    // Retry up to 3 times on timeout
+    if (attempt < 3 && (error.message || '').includes('timeout')) {
+      toast('Loading... (attempt ' + (attempt+1) + ')', '');
+      await new Promise(r => setTimeout(r, 1500));
+      return loadShoes(attempt + 1);
+    }
     const msg = error.message || error.code || JSON.stringify(error);
-    // Show full error on screen
     const errDiv = document.createElement('div');
     errDiv.style = 'position:fixed;top:80px;left:16px;right:16px;background:#fee;border:1px solid #c00;border-radius:10px;padding:14px;font-size:12px;font-family:monospace;z-index:9999;word-break:break-all;color:#c00';
     errDiv.textContent = 'Load error: ' + msg;
