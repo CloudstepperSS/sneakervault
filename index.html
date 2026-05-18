@@ -766,7 +766,7 @@ $('signout-btn').addEventListener('click', () => sb.auth.signOut());
 
 // ── Data ──────────────────────────────────────
 async function loadShoes() {
-  const { data, error } = await sb.from('sneakers').select('*').order('created_at', { ascending: false });
+  const { data, error } = await sb.from('sneakers').select('id,brand,name,type,size,color,year,release_price,resell_price,image_url,comments,created_at').order('created_at', { ascending: false });
   if (error) {
     const msg = error.message || error.code || JSON.stringify(error);
     // Show full error on screen
