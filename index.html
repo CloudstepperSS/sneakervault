@@ -220,8 +220,8 @@ nav {
 #sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: flex-end; }
 .sheet { background: var(--bg); border-radius: 22px 22px 0 0; border-top: 1px solid var(--b2); width: 100%; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 .sheet-handle { width: 36px; height: 4px; background: var(--b3); border-radius: 2px; margin: 12px auto 0; }
-.sheet-img-wrap { width: 100%; aspect-ratio: 16/9; background: var(--s1); position: relative; overflow: hidden; margin-top: 12px; display: flex; align-items: center; justify-content: center; }
-.sheet-img-wrap img { width: 130%; height: 130%; object-fit: contain; display: block; }
+.sheet-img-wrap { width: 100%; aspect-ratio: 4/3; background: var(--s1); position: relative; overflow: hidden; margin-top: 12px; display: flex; align-items: center; justify-content: center; }
+.sheet-img-wrap img { width: 160%; height: 160%; object-fit: contain; display: block; }
 .sheet-photo-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 56px; }
 .sheet-body { padding: 18px 20px 6px; }
 .sheet-brand { font-size: 9px; font-family: var(--mono); color: var(--t3); letter-spacing: .09em; text-transform: uppercase; margin-bottom: 3px; }
@@ -376,6 +376,7 @@ nav {
       <input class="search-input" id="search-input" type="search" placeholder="Search brand, name, colorway...">
     </div>
     <select class="sort-select" id="sort-select">
+      <option value="created_desc" selected>Sort by...</option>
       <option value="last_worn_desc">Last worn</option>
       <option value="created_desc">Newest added</option>
       <option value="created_asc">Oldest added</option>
@@ -423,7 +424,17 @@ nav {
     <div class="cam-corner cam-tr"></div>
     <div class="cam-corner cam-bl"></div>
     <div class="cam-corner cam-br"></div>
-    <div class="cam-hint">Frame the full shoe clearly</div>
+    <!-- Crosshair centre target -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="24" y1="4"  x2="24" y2="18" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="24" y1="30" x2="24" y2="44" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="4"  y1="24" x2="18" y2="24" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="30" y1="24" x2="44" y2="24" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="24" cy="24" r="4" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>
+      </svg>
+    </div>
+    <div class="cam-hint">Centre the shoe on the crosshair</div>
   </div>
   <div class="cam-controls">
     <label class="cam-gallery" for="gallery-input" aria-label="Choose from gallery">
@@ -1213,6 +1224,19 @@ $('rev-save').addEventListener('click', async () => {
 $('add-btn').addEventListener('click', openCamera);
 
 // ── Render ────────────────────────────────────
+function fmtLastWorn(dt) {
+  if (!dt) return 'Never worn';
+  const d = new Date(dt);
+  const now = new Date();
+  const days = Math.floor((now - d) / 86400000);
+  if (days === 0) return 'Worn today';
+  if (days === 1) return 'Worn yesterday';
+  if (days < 7) return `Worn ${days} days ago`;
+  if (days < 30) return `Worn ${Math.floor(days/7)} week${Math.floor(days/7)>1?'s':''} ago`;
+  if (days < 365) return `Worn ${Math.floor(days/30)} month${Math.floor(days/30)>1?'s':''} ago`;
+  return `Worn ${Math.floor(days/365)} year${Math.floor(days/365)>1?'s':''} ago`;
+}
+
 function render() {
   try { renderStats(); } catch(e) { console.error('renderStats failed:', e); }
   try { renderFilters(); } catch(e) { console.error('renderFilters failed:', e); }
@@ -1313,6 +1337,7 @@ function renderGrid() {
             ${roi ? `<div class="shoe-roi ${roi.positive ? 'roi-pos' : 'roi-neg'}">${roi.positive ? '+' : ''}${roi.pct}%</div>` : ''}
           </div>
         </div>
+        ${s.last_worn ? `<div style="font-size:9px;color:var(--t3);font-family:'Space Mono',monospace;margin-top:5px;padding-top:5px;border-top:1px solid var(--b1)">${fmtLastWorn(s.last_worn)}</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1491,18 +1516,7 @@ $('sheet-overlay').addEventListener('click', e => {
 })();
 
 // Format last worn date nicely
-function fmtLastWorn(dt) {
-  if (!dt) return 'Never worn';
-  const d = new Date(dt);
-  const now = new Date();
-  const days = Math.floor((now - d) / 86400000);
-  if (days === 0) return 'Worn today';
-  if (days === 1) return 'Worn yesterday';
-  if (days < 7) return `Worn ${days} days ago`;
-  if (days < 30) return `Worn ${Math.floor(days/7)} week${Math.floor(days/7)>1?'s':''} ago`;
-  if (days < 365) return `Worn ${Math.floor(days/30)} month${Math.floor(days/30)>1?'s':''} ago`;
-  return `Worn ${Math.floor(days/365)} year${Math.floor(days/365)>1?'s':''} ago`;
-}
+
 
 $('sheet-wear-btn').addEventListener('click', async () => {
   const s = shoes.find(x => x.id === currentSheetId);
