@@ -220,8 +220,8 @@ nav {
 #sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: flex-end; }
 .sheet { background: var(--bg); border-radius: 22px 22px 0 0; border-top: 1px solid var(--b2); width: 100%; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 .sheet-handle { width: 36px; height: 4px; background: var(--b3); border-radius: 2px; margin: 12px auto 0; }
-.sheet-img-wrap { width: 100%; aspect-ratio: 16/9; background: var(--s2); position: relative; overflow: hidden; margin-top: 12px; }
-.sheet-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sheet-img-wrap { width: 100%; aspect-ratio: 4/3; background: var(--s1); position: relative; overflow: hidden; margin-top: 12px; display: flex; align-items: center; justify-content: center; }
+.sheet-img-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 10px; }
 .sheet-photo-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 56px; }
 .sheet-body { padding: 18px 20px 6px; }
 .sheet-brand { font-size: 9px; font-family: var(--mono); color: var(--t3); letter-spacing: .09em; text-transform: uppercase; margin-bottom: 3px; }
@@ -268,7 +268,9 @@ nav {
 
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
+
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg"></head>
 <body>
 
 <!-- ── AUTH SCREEN ───────────────────────────── -->
@@ -374,6 +376,7 @@ nav {
       <input class="search-input" id="search-input" type="search" placeholder="Search brand, name, colorway...">
     </div>
     <select class="sort-select" id="sort-select">
+      <option value="last_worn_desc">Last worn</option>
       <option value="created_desc">Newest added</option>
       <option value="created_asc">Oldest added</option>
       <option value="brand_asc">Brand A–Z</option>
@@ -592,7 +595,11 @@ nav {
       <div style="font-size:9px;font-family:'Space Mono',monospace;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Comments</div>
       <div id="sheet-comments-text" style="font-size:13px;color:#444;line-height:1.5"></div>
     </div>
-    <div style="padding:0 20px 10px">
+    <div style="padding:0 20px 10px;display:flex;flex-direction:column;gap:8px">
+      <button id="sheet-wear-btn" style="width:100%;padding:13px;border-radius:11px;font-size:14px;font-weight:700;border:none;background:#0d0d0d;color:#fff;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px">
+        👟 Wear today
+      </button>
+      <div id="sheet-last-worn" style="text-align:center;font-size:12px;color:#aaa;font-family:'Space Mono',monospace;min-height:16px"></div>
       <button id="sheet-refresh-price" style="width:100%;padding:12px;border-radius:11px;font-size:13px;font-weight:600;border:1px solid rgba(0,0,0,0.12);background:#f7f7f5;color:#0d0d0d;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
         <span id="sheet-refresh-icon">↻</span> Refresh resell price
       </button>
@@ -772,7 +779,7 @@ $('signout-btn').addEventListener('click', () => sb.auth.signOut());
 // ── Data ──────────────────────────────────────
 async function loadShoes(attempt = 1) {
   const { data, error } = await sb.from('sneakers')
-    .select('id,brand,name,type,size,color,year,release_price,resell_price,comments,created_at')
+    .select('id,brand,name,type,size,color,year,release_price,resell_price,comments,last_worn,created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
   if (error) {
@@ -1254,6 +1261,13 @@ function getFiltered() {
     })
     .sort((a, b) => {
       switch (sortBy) {
+        case 'last_worn_desc': {
+          // Unworn shoes go to the bottom
+          if (!a.last_worn && !b.last_worn) return 0;
+          if (!a.last_worn) return 1;
+          if (!b.last_worn) return -1;
+          return new Date(b.last_worn) - new Date(a.last_worn);
+        }
         case 'brand_asc':    return (a.brand||'').localeCompare(b.brand||'');
         case 'name_asc':     return (a.name||'').localeCompare(b.name||'');
         case 'year_desc':    return (b.year||0) - (a.year||0);
@@ -1414,6 +1428,8 @@ async function openSheet(id) {
   } else {
     $('sheet-comments').style.display = 'none';
   }
+  // Show last worn date
+  $('sheet-last-worn').textContent = fmtLastWorn(s.last_worn);
 
   $('sheet-overlay').style.display = 'flex';
 }
@@ -1425,6 +1441,85 @@ function closeSheet() {
 
 $('sheet-overlay').addEventListener('click', e => {
   if (e.target === $('sheet-overlay')) closeSheet();
+});
+
+// Swipe down to dismiss
+(function() {
+  const sheet = $('detail-sheet');
+  let startY = 0, startScroll = 0, dragging = false;
+
+  sheet.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
+    startScroll = sheet.scrollTop;
+    dragging = true;
+  }, { passive: true });
+
+  sheet.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const dy = e.touches[0].clientY - startY;
+    // Only drag down when already scrolled to top
+    if (dy > 0 && startScroll <= 0) {
+      sheet.style.transform = `translateY(${Math.min(dy, 300)}px)`;
+      sheet.style.transition = 'none';
+      $('sheet-overlay').style.background = `rgba(0,0,0,${Math.max(0, 0.45 - dy/600)})`;
+    }
+  }, { passive: true });
+
+  sheet.addEventListener('touchend', e => {
+    if (!dragging) return;
+    dragging = false;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (dy > 100 && startScroll <= 0) {
+      // Swipe far enough — dismiss
+      sheet.style.transition = 'transform 0.25s ease';
+      sheet.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        closeSheet();
+        sheet.style.transform = '';
+        sheet.style.transition = '';
+      }, 250);
+    } else {
+      // Snap back
+      sheet.style.transition = 'transform 0.2s ease';
+      sheet.style.transform = '';
+      $('sheet-overlay').style.background = 'rgba(0,0,0,0.45)';
+      setTimeout(() => { sheet.style.transition = ''; }, 200);
+    }
+  }, { passive: true });
+})();
+
+// Format last worn date nicely
+function fmtLastWorn(dt) {
+  if (!dt) return 'Never worn';
+  const d = new Date(dt);
+  const now = new Date();
+  const days = Math.floor((now - d) / 86400000);
+  if (days === 0) return 'Worn today';
+  if (days === 1) return 'Worn yesterday';
+  if (days < 7) return `Worn ${days} days ago`;
+  if (days < 30) return `Worn ${Math.floor(days/7)} week${Math.floor(days/7)>1?'s':''} ago`;
+  if (days < 365) return `Worn ${Math.floor(days/30)} month${Math.floor(days/30)>1?'s':''} ago`;
+  return `Worn ${Math.floor(days/365)} year${Math.floor(days/365)>1?'s':''} ago`;
+}
+
+$('sheet-wear-btn').addEventListener('click', async () => {
+  const s = shoes.find(x => x.id === currentSheetId);
+  if (!s) return;
+  const btn = $('sheet-wear-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  const now = new Date().toISOString();
+  const { error } = await sb.from('sneakers').update({ last_worn: now }).eq('id', s.id);
+  if (error) {
+    toast('Failed to update', 'error');
+  } else {
+    s.last_worn = now;
+    $('sheet-last-worn').textContent = fmtLastWorn(now);
+    toast('Marked as worn today 👟', 'success');
+    renderGrid();
+  }
+  btn.disabled = false;
+  btn.innerHTML = '👟 Wear today';
 });
 
 $('sheet-refresh-price').addEventListener('click', async () => {
