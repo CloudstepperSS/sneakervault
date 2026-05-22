@@ -220,8 +220,8 @@ nav {
 #sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: flex-end; }
 .sheet { background: var(--bg); border-radius: 22px 22px 0 0; border-top: 1px solid var(--b2); width: 100%; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 .sheet-handle { width: 36px; height: 4px; background: var(--b3); border-radius: 2px; margin: 12px auto 0; }
-.sheet-img-wrap { width: 100%; aspect-ratio: 4/3; background: var(--s1); position: relative; overflow: hidden; margin-top: 12px; display: flex; align-items: center; justify-content: center; }
-.sheet-img-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 10px; }
+.sheet-img-wrap { width: 100%; aspect-ratio: 16/9; background: var(--s1); position: relative; overflow: hidden; margin-top: 12px; display: flex; align-items: center; justify-content: center; }
+.sheet-img-wrap img { width: 130%; height: 130%; object-fit: contain; display: block; }
 .sheet-photo-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 56px; }
 .sheet-body { padding: 18px 20px 6px; }
 .sheet-brand { font-size: 9px; font-family: var(--mono); color: var(--t3); letter-spacing: .09em; text-transform: uppercase; margin-bottom: 3px; }
@@ -568,6 +568,12 @@ nav {
       <img id="sheet-photo" src="" alt="">
       <div class="sheet-photo-ph" id="sheet-photo-ph">👟</div>
     </div>
+    <div style="padding:12px 20px 0">
+      <button id="sheet-wear-btn" style="width:100%;padding:13px;border-radius:11px;font-size:14px;font-weight:700;border:none;background:#0d0d0d;color:#fff;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px">
+        👟 Wear today
+      </button>
+      <div id="sheet-last-worn" style="text-align:center;font-size:12px;color:#aaa;font-family:'Space Mono',monospace;margin-top:7px;min-height:16px"></div>
+    </div>
     <div class="sheet-body">
       <div class="sheet-brand" id="sheet-brand"></div>
       <div class="sheet-name" id="sheet-name"></div>
@@ -595,11 +601,7 @@ nav {
       <div style="font-size:9px;font-family:'Space Mono',monospace;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Comments</div>
       <div id="sheet-comments-text" style="font-size:13px;color:#444;line-height:1.5"></div>
     </div>
-    <div style="padding:0 20px 10px;display:flex;flex-direction:column;gap:8px">
-      <button id="sheet-wear-btn" style="width:100%;padding:13px;border-radius:11px;font-size:14px;font-weight:700;border:none;background:#0d0d0d;color:#fff;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px">
-        👟 Wear today
-      </button>
-      <div id="sheet-last-worn" style="text-align:center;font-size:12px;color:#aaa;font-family:'Space Mono',monospace;min-height:16px"></div>
+    <div style="padding:0 20px 10px">
       <button id="sheet-refresh-price" style="width:100%;padding:12px;border-radius:11px;font-size:13px;font-weight:600;border:1px solid rgba(0,0,0,0.12);background:#f7f7f5;color:#0d0d0d;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
         <span id="sheet-refresh-icon">↻</span> Refresh resell price
       </button>
