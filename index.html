@@ -456,14 +456,35 @@ nav {
 <div id="crop-screen" style="display:none;position:fixed;inset:0;background:#000;flex-direction:column;z-index:50">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;padding-top:max(14px,env(safe-area-inset-top));background:#111;flex-shrink:0">
     <button id="crop-retake" style="font-size:14px;color:rgba(255,255,255,0.6);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px">← Retake</button>
-    <span style="font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:#fff;letter-spacing:.07em">ADJUST PHOTO</span>
+    <span style="font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:#fff;letter-spacing:.07em">CROP PHOTO</span>
     <button id="crop-use" style="font-size:14px;font-weight:700;color:#d4ff47;background:none;border:none;cursor:pointer;font-family:inherit;padding:4px">Use →</button>
   </div>
-  <div id="crop-viewport" style="flex:1;position:relative;overflow:hidden;touch-action:none;cursor:grab">
-    <img id="crop-img" src="" alt="" style="position:absolute;transform-origin:0 0;user-select:none;-webkit-user-select:none;pointer-events:none">
+  <div id="crop-viewport" style="flex:1;position:relative;overflow:hidden;touch-action:none;background:#000;display:flex;align-items:center;justify-content:center">
+    <img id="crop-img" src="" alt="" style="position:absolute;user-select:none;-webkit-user-select:none;pointer-events:none;max-width:100%;max-height:100%;object-fit:contain">
+    <!-- Dark overlay outside crop box -->
+    <canvas id="crop-overlay" style="position:absolute;inset:0;pointer-events:none"></canvas>
+    <!-- Crop box -->
+    <div id="crop-box" style="position:absolute;border:2px solid #fff;box-sizing:border-box;touch-action:none">
+      <!-- Grid lines -->
+      <div style="position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;pointer-events:none">
+        <div style="border-right:1px solid rgba(255,255,255,0.3)"></div><div style="border-right:1px solid rgba(255,255,255,0.3)"></div><div></div>
+        <div style="border-right:1px solid rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.3)"></div><div style="border-right:1px solid rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.3)"></div><div style="border-top:1px solid rgba(255,255,255,0.3)"></div>
+        <div style="border-right:1px solid rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.3)"></div><div style="border-right:1px solid rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.3)"></div><div style="border-top:1px solid rgba(255,255,255,0.3)"></div>
+      </div>
+      <!-- Corner handles -->
+      <div class="crop-handle" data-corner="tl" style="position:absolute;top:-2px;left:-2px;width:22px;height:22px;border-top:4px solid #fff;border-left:4px solid #fff;cursor:nwse-resize;touch-action:none"></div>
+      <div class="crop-handle" data-corner="tr" style="position:absolute;top:-2px;right:-2px;width:22px;height:22px;border-top:4px solid #fff;border-right:4px solid #fff;cursor:nesw-resize;touch-action:none"></div>
+      <div class="crop-handle" data-corner="bl" style="position:absolute;bottom:-2px;left:-2px;width:22px;height:22px;border-bottom:4px solid #fff;border-left:4px solid #fff;cursor:nesw-resize;touch-action:none"></div>
+      <div class="crop-handle" data-corner="br" style="position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;border-bottom:4px solid #fff;border-right:4px solid #fff;cursor:nwse-resize;touch-action:none"></div>
+      <!-- Edge handles -->
+      <div class="crop-handle" data-corner="t"  style="position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:30px;height:14px;border-top:4px solid #fff;cursor:ns-resize;touch-action:none"></div>
+      <div class="crop-handle" data-corner="b"  style="position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:30px;height:14px;border-bottom:4px solid #fff;cursor:ns-resize;touch-action:none"></div>
+      <div class="crop-handle" data-corner="l"  style="position:absolute;left:-2px;top:50%;transform:translateY(-50%);width:14px;height:30px;border-left:4px solid #fff;cursor:ew-resize;touch-action:none"></div>
+      <div class="crop-handle" data-corner="r"  style="position:absolute;right:-2px;top:50%;transform:translateY(-50%);width:14px;height:30px;border-right:4px solid #fff;cursor:ew-resize;touch-action:none"></div>
+    </div>
   </div>
   <div style="padding:10px;background:#111;flex-shrink:0;padding-bottom:max(10px,env(safe-area-inset-bottom));text-align:center">
-    <p style="font-size:11px;color:rgba(255,255,255,0.35);font-family:'Space Mono',monospace">Pinch to zoom · Drag to reposition</p>
+    <p style="font-size:11px;color:rgba(255,255,255,0.35);font-family:'Space Mono',monospace">Drag handles to crop · Drag inside to move</p>
   </div>
 </div>
 
@@ -1080,14 +1101,14 @@ function captureFrame() {
   openCrop(raw);
 }
 
-// ── Crop / reframe screen ──────────────────────────
+// ── Crop screen ───────────────────────────────────────
 let cropRawDataUrl = null;
-let cropScale = 1, cropX = 0, cropY = 0;
 let cropImgNaturalW = 0, cropImgNaturalH = 0;
+let cropImgX = 0, cropImgY = 0, cropImgW = 0, cropImgH = 0; // image rendered position/size in viewport
+let cropBox = { x: 0, y: 0, w: 0, h: 0 }; // crop box in viewport coords
 
 function openCrop(dataUrl) {
   cropRawDataUrl = dataUrl;
-  cropScale = 1; cropX = 0; cropY = 0;
   showScreen('crop-screen');
   $('crop-screen').style.display = 'flex';
 
@@ -1095,125 +1116,138 @@ function openCrop(dataUrl) {
   img.onload = () => {
     cropImgNaturalW = img.naturalWidth;
     cropImgNaturalH = img.naturalHeight;
-    const vp = $('crop-viewport');
-    const vpW = vp.clientWidth, vpH = vp.clientHeight;
-    // Fit image to viewport initially
-    const scaleToFit = Math.min(vpW / cropImgNaturalW, vpH / cropImgNaturalH);
-    cropScale = scaleToFit;
-    cropX = (vpW - cropImgNaturalW * cropScale) / 2;
-    cropY = (vpH - cropImgNaturalH * cropScale) / 2;
-    applyCropTransform();
+    requestAnimationFrame(initCropLayout);
   };
   img.src = dataUrl;
 }
 
-function applyCropTransform() {
-  $('crop-img').style.transform = `translate(${cropX}px, ${cropY}px) scale(${cropScale})`;
-  $('crop-img').style.transformOrigin = '0 0';
-  $('crop-img').style.width = cropImgNaturalW + 'px';
-  $('crop-img').style.height = cropImgNaturalH + 'px';
-  $('crop-img').style.left = '0';
-  $('crop-img').style.top = '0';
+function initCropLayout() {
+  const vp = $('crop-viewport');
+  const vpW = vp.clientWidth, vpH = vp.clientHeight;
+  const img = $('crop-img');
+
+  // Scale image to fit viewport
+  const scaleW = vpW / cropImgNaturalW;
+  const scaleH = vpH / cropImgNaturalH;
+  const scale  = Math.min(scaleW, scaleH);
+  cropImgW = cropImgNaturalW * scale;
+  cropImgH = cropImgNaturalH * scale;
+  cropImgX = (vpW - cropImgW) / 2;
+  cropImgY = (vpH - cropImgH) / 2;
+
+  img.style.width  = cropImgW + 'px';
+  img.style.height = cropImgH + 'px';
+  img.style.left   = cropImgX + 'px';
+  img.style.top    = cropImgY + 'px';
+  img.style.maxWidth  = 'none';
+  img.style.maxHeight = 'none';
+
+  // Initial crop box = full image
+  cropBox = { x: cropImgX, y: cropImgY, w: cropImgW, h: cropImgH };
+  updateCropBox();
+  drawOverlay();
 }
 
-// Touch handling — drag and pinch-to-zoom
+function updateCropBox() {
+  const box = $('crop-box');
+  box.style.left   = cropBox.x + 'px';
+  box.style.top    = cropBox.y + 'px';
+  box.style.width  = cropBox.w + 'px';
+  box.style.height = cropBox.h + 'px';
+  drawOverlay();
+}
+
+function drawOverlay() {
+  const vp = $('crop-viewport');
+  const cv = $('crop-overlay');
+  cv.width  = vp.clientWidth;
+  cv.height = vp.clientHeight;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.clearRect(cropBox.x, cropBox.y, cropBox.w, cropBox.h);
+}
+
+// ── Drag handles and move box ──────────────────────────
 (function() {
   const vp = $('crop-viewport');
-  let lastTouches = [];
-  let lastDist = 0;
-  let lastMidX = 0, lastMidY = 0;
+  const MIN = 60;
+  let activeCorner = null;
+  let startX = 0, startY = 0;
+  let startBox = null;
 
-  function getTouches(e) { return Array.from(e.touches); }
-  function dist(a, b) { return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY); }
-  function mid(a, b) { return { x: (a.clientX + b.clientX)/2, y: (a.clientY + b.clientY)/2 }; }
+  function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 
-  vp.addEventListener('touchstart', e => {
+  function getPos(e) {
+    const t = e.touches ? e.touches[0] : e;
+    const r = vp.getBoundingClientRect();
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  }
+
+  function onHandleStart(e, corner) {
+    e.preventDefault(); e.stopPropagation();
+    activeCorner = corner;
+    const p = getPos(e);
+    startX = p.x; startY = p.y;
+    startBox = { ...cropBox };
+  }
+
+  function onMove(e) {
+    if (!activeCorner) return;
     e.preventDefault();
-    lastTouches = getTouches(e);
-    if (lastTouches.length === 2) {
-      lastDist = dist(lastTouches[0], lastTouches[1]);
-      const m = mid(lastTouches[0], lastTouches[1]);
-      lastMidX = m.x; lastMidY = m.y;
+    const p = getPos(e);
+    const dx = p.x - startX, dy = p.y - startY;
+    let { x, y, w, h } = startBox;
+    const imgR = cropImgX + cropImgW, imgB = cropImgY + cropImgH;
+
+    if (activeCorner === 'move') {
+      x = clamp(x + dx, cropImgX, imgR - w);
+      y = clamp(y + dy, cropImgY, imgB - h);
+    } else {
+      if (activeCorner.includes('l')) {
+        const newX = clamp(x + dx, cropImgX, x + w - MIN);
+        w = w - (newX - x); x = newX;
+      }
+      if (activeCorner.includes('r')) {
+        w = clamp(w + dx, MIN, imgR - x);
+      }
+      if (activeCorner.includes('t')) {
+        const newY = clamp(y + dy, cropImgY, y + h - MIN);
+        h = h - (newY - y); y = newY;
+      }
+      if (activeCorner.includes('b')) {
+        h = clamp(h + dy, MIN, imgB - y);
+      }
     }
-  }, { passive: false });
+    cropBox = { x, y, w, h };
+    updateCropBox();
+  }
 
-  vp.addEventListener('touchmove', e => {
-    e.preventDefault();
-    const touches = getTouches(e);
-    if (touches.length === 1 && lastTouches.length === 1) {
-      // Drag
-      const dx = touches[0].clientX - lastTouches[0].clientX;
-      const dy = touches[0].clientY - lastTouches[0].clientY;
-      cropX += dx; cropY += dy;
-      applyCropTransform();
-    } else if (touches.length === 2 && lastTouches.length >= 1) {
-      // Pinch zoom
-      const newDist = dist(touches[0], touches[1]);
-      const m = mid(touches[0], touches[1]);
-      const ratio = newDist / (lastDist || newDist);
-      // Zoom around pinch midpoint
-      const vpRect = vp.getBoundingClientRect();
-      const px = m.x - vpRect.left;
-      const py = m.y - vpRect.top;
-      cropX = px - (px - cropX) * ratio;
-      cropY = py - (py - cropY) * ratio;
-      cropScale = Math.max(0.3, Math.min(cropScale * ratio, 8));
-      lastDist = newDist;
-      // Also pan
-      cropX += m.x - lastMidX;
-      cropY += m.y - lastMidY;
-      lastMidX = m.x; lastMidY = m.y;
-      applyCropTransform();
-    }
-    lastTouches = touches;
-  }, { passive: false });
+  function onEnd() { activeCorner = null; }
 
-  vp.addEventListener('touchend', e => {
-    lastTouches = Array.from(e.touches);
-  }, { passive: true });
-
-  // Mouse support for desktop testing
-  let mouseDown = false, lastMouseX = 0, lastMouseY = 0;
-  vp.addEventListener('mousedown', e => { mouseDown = true; lastMouseX = e.clientX; lastMouseY = e.clientY; vp.style.cursor='grabbing'; });
-  window.addEventListener('mousemove', e => {
-    if (!mouseDown) return;
-    cropX += e.clientX - lastMouseX; cropY += e.clientY - lastMouseY;
-    lastMouseX = e.clientX; lastMouseY = e.clientY;
-    applyCropTransform();
+  // Attach to handles
+  document.querySelectorAll('.crop-handle').forEach(handle => {
+    const corner = handle.dataset.corner;
+    handle.addEventListener('touchstart', e => onHandleStart(e, corner), { passive: false });
+    handle.addEventListener('mousedown',  e => onHandleStart(e, corner));
   });
-  window.addEventListener('mouseup', () => { mouseDown = false; vp.style.cursor='grab'; });
-  vp.addEventListener('wheel', e => {
-    e.preventDefault();
-    const ratio = e.deltaY < 0 ? 1.1 : 0.9;
-    const vpRect = vp.getBoundingClientRect();
-    const px = e.clientX - vpRect.left, py = e.clientY - vpRect.top;
-    cropX = px - (px - cropX) * ratio;
-    cropY = py - (py - cropY) * ratio;
-    cropScale = Math.max(0.3, Math.min(cropScale * ratio, 8));
-    applyCropTransform();
+
+  // Move entire box by dragging inside it
+  $('crop-box').addEventListener('touchstart', e => {
+    if (e.target.classList.contains('crop-handle')) return;
+    onHandleStart(e, 'move');
   }, { passive: false });
+  $('crop-box').addEventListener('mousedown', e => {
+    if (e.target.classList.contains('crop-handle')) return;
+    onHandleStart(e, 'move');
+  });
+
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('touchend',  onEnd,  { passive: true });
+  window.addEventListener('mouseup',   onEnd);
 })();
-
-// Called from review screen — crop then come back to review
-let cropReturnToReview = false;
-let savedReviewData = null;
-
-function openCropFromReview() {
-  // Save current form values
-  savedReviewData = {
-    brand:   $('f-brand').value,
-    name:    $('f-name').value,
-    type:    $('f-type').value,
-    size:    $('f-size').value,
-    color:   $('f-color').value,
-    year:    $('f-year').value,
-    release: $('f-release').value,
-    resell:  $('f-resell').value,
-    comments: $('f-comments').value,
-  };
-  cropReturnToReview = true;
-  openCrop(photoDataUrl || $('rev-photo').src);
-}
 
 $('crop-retake').addEventListener('click', () => {
   if (cropReturnToReview) {
@@ -1226,15 +1260,20 @@ $('crop-retake').addEventListener('click', () => {
 });
 
 $('crop-use').addEventListener('click', () => {
-  // Render the cropped/zoomed view to a canvas
-  const vp = $('crop-viewport');
-  const vpW = vp.clientWidth, vpH = vp.clientHeight;
-  const canvas = document.createElement('canvas');
-  canvas.width  = vpW;
-  canvas.height = vpH;
-  const ctx = canvas.getContext('2d');
+  // Render the crop box selection to a canvas at full resolution
   const img = $('crop-img');
-  ctx.drawImage(img, cropX, cropY, cropImgNaturalW * cropScale, cropImgNaturalH * cropScale);
+  // Convert crop box viewport coords back to image pixel coords
+  const scaleX = cropImgNaturalW / cropImgW;
+  const scaleY = cropImgNaturalH / cropImgH;
+  const srcX = (cropBox.x - cropImgX) * scaleX;
+  const srcY = (cropBox.y - cropImgY) * scaleY;
+  const srcW = cropBox.w * scaleX;
+  const srcH = cropBox.h * scaleY;
+  const canvas = document.createElement('canvas');
+  canvas.width  = Math.round(srcW);
+  canvas.height = Math.round(srcH);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
   photoDataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
   if (cropReturnToReview) {
