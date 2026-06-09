@@ -338,7 +338,7 @@ nav {
 <div id="main-app" style="display:none">
 
   <!-- Nav -->
-  <nav>
+  <nav id="main-nav" style="cursor:pointer" onclick="scrollToTop()">
     <div class="nav-logo">SNEAKER<em>VAULT</em></div>
     <div class="nav-right">
       <button class="btn btn-ghost btn-sm" id="signout-btn">Sign out</button>
@@ -531,6 +531,7 @@ nav {
       <button onclick="openCropFromReview()" style="position:absolute;bottom:9px;right:9px;background:rgba(0,0,0,0.65);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-family:inherit;cursor:pointer;font-weight:600">✂ Adjust</button>
     </div>
 
+    <!-- Row 1: Brand + Type -->
     <div class="form-row">
       <div class="field">
         <label>Brand</label>
@@ -540,24 +541,37 @@ nav {
         <label>Type</label>
         <select id="f-type">
           <option value="">Select...</option>
-          <option>Lifestyle</option>
-          <option>Basketball</option>
-          <option>Running</option>
-          <option>Training</option>
-          <option>Skate</option>
-          <option>Trail</option>
-          <option>Collaboration</option>
-          <option>Limited Edition</option>
-          <option>Other</option>
+          <option>Lifestyle</option><option>Basketball</option><option>Running</option>
+          <option>Training</option><option>Skate</option><option>Trail</option>
+          <option>Collaboration</option><option>Limited Edition</option><option>Other</option>
         </select>
       </div>
     </div>
 
+    <!-- Row 2: Name -->
     <div class="field">
       <label>Shoe name</label>
       <input id="f-name" type="text" placeholder="e.g. Samba OG">
     </div>
 
+    <!-- Row 3: Designer + Condition -->
+    <div class="form-row">
+      <div class="field">
+        <label>Designer</label>
+        <input id="f-designer" type="text" placeholder="e.g. Yohji Yamamoto">
+      </div>
+      <div class="field">
+        <label>Condition</label>
+        <select id="f-condition">
+          <option value="">Select...</option>
+          <option>New</option>
+          <option>Used</option>
+          <option>Well worn</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Row 4: Colorway + Size -->
     <div class="form-row">
       <div class="field">
         <label>Colorway</label>
@@ -578,20 +592,20 @@ nav {
       </div>
     </div>
 
-    <div class="form-row">
+    <!-- Row 5: Release price + Resell + Year -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
       <div class="field">
-        <label>Release price (€)</label>
+        <label>Release (€)</label>
         <input id="f-release" type="number" placeholder="0" min="0" step="0.01">
       </div>
       <div class="field">
-        <label>Resell value (€)</label>
+        <label>Resell (€)</label>
         <input id="f-resell" type="number" placeholder="0" min="0" step="0.01">
       </div>
-    </div>
-
-    <div class="field">
-      <label>Release year</label>
-      <input id="f-year" type="number" placeholder="e.g. 2024" min="1980" max="2099">
+      <div class="field">
+        <label>Year</label>
+        <input id="f-year" type="number" placeholder="2024" min="1980" max="2099">
+      </div>
     </div>
 
     <div class="roi-row" id="roi-row" style="display:none">
@@ -599,9 +613,16 @@ nav {
       <span class="roi-value" id="roi-value"></span>
     </div>
 
+    <!-- Row 6: Comments -->
     <div class="field">
       <label>Comments</label>
-      <textarea id="f-comments" placeholder="Add your notes about this shoe..." style="background:var(--s1);border:1px solid var(--b1);color:var(--t1);font-family:var(--sans);font-size:14px;padding:11px 13px;border-radius:10px;width:100%;resize:vertical;min-height:80px;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--t1)'" onblur="this.style.borderColor='var(--b1)'"></textarea>
+      <textarea id="f-comments" placeholder="Add your notes about this shoe..." style="background:var(--s1);border:1px solid var(--b1);color:var(--t1);font-family:var(--sans);font-size:13px;padding:10px 12px;border-radius:10px;width:100%;resize:vertical;min-height:64px;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--t1)'" onblur="this.style.borderColor='var(--b1)'"></textarea>
+    </div>
+
+    <!-- Row 7: Release notes (AI-filled) -->
+    <div class="field">
+      <label>Release notes</label>
+      <textarea id="f-release-notes" placeholder="AI will fill in release notes..." style="background:var(--s1);border:1px solid var(--b1);color:var(--t1);font-family:var(--sans);font-size:13px;padding:10px 12px;border-radius:10px;width:100%;resize:vertical;min-height:64px;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--t1)'" onblur="this.style.borderColor='var(--b1)'"></textarea>
     </div>
 
     <div id="rev-err" class="form-err"></div>
@@ -626,9 +647,16 @@ nav {
       <div class="sheet-brand" id="sheet-brand"></div>
       <div class="sheet-name" id="sheet-name"></div>
       <div class="sheet-sub" id="sheet-sub"></div>
-      <div class="sheet-grid">
+      <!-- Size + Year + Condition in one row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
         <div class="sf"><div class="sf-l">EU Size</div><div class="sf-v" id="sheet-size">—</div></div>
-        <div class="sf"><div class="sf-l">Release year</div><div class="sf-v" id="sheet-year">—</div></div>
+        <div class="sf"><div class="sf-l">Year</div><div class="sf-v" id="sheet-year">—</div></div>
+        <div class="sf"><div class="sf-l">Condition</div><div class="sf-v" id="sheet-condition">—</div></div>
+      </div>
+      <!-- Designer -->
+      <div class="sf" style="margin-bottom:12px" id="sheet-designer-wrap">
+        <div class="sf-l">Designer</div>
+        <div class="sf-v" id="sheet-designer">—</div>
       </div>
       <div class="sheet-prices">
         <div class="sp-box">
@@ -644,10 +672,16 @@ nav {
         <span class="roi-label">ROI</span>
         <span class="roi-value" id="sheet-roi-val"></span>
       </div>
+      <!-- Release notes -->
+      <div id="sheet-release-notes-wrap" style="display:none;margin-top:10px;background:var(--s1);border-radius:9px;padding:12px 14px">
+        <div style="font-size:9px;font-family:'Space Mono',monospace;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Release notes</div>
+        <div id="sheet-release-notes-text" style="font-size:12px;color:var(--t2);line-height:1.6"></div>
+      </div>
     </div>
-    <div class="sheet-comments" id="sheet-comments" style="display:none;margin:0 20px 10px;background:var(--s1);border-radius:9px;padding:12px 14px">
-      <div style="font-size:9px;font-family:'Space Mono',monospace;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Comments</div>
-      <div id="sheet-comments-text" style="font-size:13px;color:#444;line-height:1.5"></div>
+    <!-- Comments — always shown, editable inline -->
+    <div style="margin:0 20px 10px;background:var(--s1);border-radius:9px;padding:12px 14px">
+      <div style="font-size:9px;font-family:'Space Mono',monospace;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Comments</div>
+      <textarea id="sheet-comments-input" placeholder="Add a comment..." style="width:100%;background:transparent;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--t1);resize:none;min-height:48px;line-height:1.5" onblur="saveSheetComment()"></textarea>
     </div>
     <div style="padding:0 20px 10px">
       <button id="sheet-refresh-price" style="width:100%;padding:12px;border-radius:11px;font-size:13px;font-weight:600;border:1px solid rgba(0,0,0,0.12);background:#f7f7f5;color:#0d0d0d;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
@@ -655,9 +689,10 @@ nav {
       </button>
     </div>
     <div class="sheet-btns">
-      <button class="sbtn sbtn-ghost" id="sheet-delete">Delete</button>
-      <button class="sbtn sbtn-ghost" id="sheet-adjust-photo" style="flex:0.8;font-size:12px">✂ Photo</button>
-      <button class="sbtn sbtn-primary" id="sheet-edit">Edit</button>
+      <button class="sbtn sbtn-ghost" id="sheet-delete" style="flex:0.7;font-size:12px">Delete</button>
+      <button class="sbtn sbtn-ghost" id="sheet-adjust-photo" style="flex:0.7;font-size:12px">✂ Photo</button>
+      <button class="sbtn sbtn-ghost" id="sheet-share" style="flex:0.7;font-size:12px">↑ Share</button>
+      <button class="sbtn sbtn-primary" id="sheet-edit" style="flex:0.9">Edit</button>
     </div>
   </div>
 </div>
@@ -830,7 +865,7 @@ $('signout-btn').addEventListener('click', () => sb.auth.signOut());
 // ── Data ──────────────────────────────────────
 async function loadShoes(attempt = 1) {
   const { data, error } = await sb.from('sneakers')
-    .select('id,brand,name,type,size,color,year,release_price,resell_price,comments,last_worn,created_at')
+    .select('id,brand,name,type,size,color,year,release_price,resell_price,comments,condition,designer,release_notes,last_worn,wear_count,created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
   if (error) {
@@ -865,6 +900,9 @@ async function upsertShoe(shoe) {
     resell_price:  shoe.resell_price  ? Number(shoe.resell_price)  : null,
     image_url:     shoe.image_url || null,
     comments:      shoe.comments || null,
+    condition:     shoe.condition || null,
+    designer:      shoe.designer || null,
+    release_notes: shoe.release_notes || null,
   };
 
   if (shoe.id) {
@@ -980,6 +1018,8 @@ Return ONLY a valid JSON object, no markdown, no explanation:
   "release_price": number in EUR,
   "resell_price": number in EUR,
   "release_year": year the shoe was originally released as a number or null,
+  "designer": "name of the designer or collaborating designer e.g. Yohji Yamamoto, Jerry Lorenzo, Virgil Abloh, Salehe Bembury — null if standard release",
+  "release_notes": "2-3 sentence description of the shoe: its history, what makes it notable, any collaboration story or cultural significance",
   "confidence": "high | medium | low"
 }`;
 
@@ -1282,15 +1322,18 @@ $('crop-use').addEventListener('click', () => {
     showScreen('review-screen');
     $('rev-photo').src = photoDataUrl;
     if (savedReviewData) {
-      $('f-brand').value   = savedReviewData.brand;
-      $('f-name').value    = savedReviewData.name;
-      $('f-type').value    = savedReviewData.type;
-      $('f-size').value    = savedReviewData.size;
-      $('f-color').value   = savedReviewData.color;
-      $('f-year').value    = savedReviewData.year;
-      $('f-release').value = savedReviewData.release;
-      $('f-resell').value  = savedReviewData.resell;
+      $('f-brand').value    = savedReviewData.brand;
+      $('f-name').value     = savedReviewData.name;
+      $('f-type').value     = savedReviewData.type;
+      $('f-size').value     = savedReviewData.size;
+      $('f-color').value    = savedReviewData.color;
+      $('f-year').value     = savedReviewData.year;
+      $('f-release').value  = savedReviewData.release;
+      $('f-resell').value   = savedReviewData.resell;
       $('f-comments').value = savedReviewData.comments;
+      $('f-condition').value     = savedReviewData.condition || '';
+      $('f-designer').value      = savedReviewData.designer || '';
+      $('f-release-notes').value = savedReviewData.releaseNotes || '';
       savedReviewData = null;
       updateROI();
     }
@@ -1331,6 +1374,7 @@ async function goAnalyze() {
     { key: 'Model',         val: result.name },
     { key: 'Colorway',      val: result.color },
     { key: 'Type',          val: result.type },
+    { key: 'Designer',      val: result.designer },
     { key: 'Release year',  val: result.release_year ? String(result.release_year) : null },
     { key: 'Release price', val: result.release_price ? fmtPrice(result.release_price) : null },
     { key: 'Resell value',  val: result.resell_price  ? fmtPrice(result.resell_price)  : null },
@@ -1362,7 +1406,7 @@ function goReview(aiResult = {}) {
   showScreen('review-screen');
   $('rev-photo').src = photoDataUrl;
 
-  const fields = ['f-brand','f-name','f-color','f-type','f-size','f-release','f-resell','f-year'];
+  const fields = ['f-brand','f-name','f-color','f-type','f-size','f-release','f-resell','f-year','f-designer','f-condition','f-release-notes'];
   fields.forEach(id => {
     const el = $(id);
     el.value = '';
@@ -1376,13 +1420,15 @@ function goReview(aiResult = {}) {
     el.classList.add('ai-filled');
   };
 
-  set('f-brand',   aiResult.brand);
-  set('f-name',    aiResult.name);
-  set('f-color',   aiResult.color);
-  set('f-type',    aiResult.type);
-  set('f-release', aiResult.release_price);
-  set('f-resell',  aiResult.resell_price);
-  set('f-year',    aiResult.release_year);
+  set('f-brand',         aiResult.brand);
+  set('f-name',          aiResult.name);
+  set('f-color',         aiResult.color);
+  set('f-type',          aiResult.type);
+  set('f-release',       aiResult.release_price);
+  set('f-resell',        aiResult.resell_price);
+  set('f-year',          aiResult.release_year);
+  set('f-designer',      aiResult.designer);
+  set('f-release-notes', aiResult.release_notes);
 
   updateROI();
   $('rev-err').textContent = '';
@@ -1394,8 +1440,11 @@ function goReview(aiResult = {}) {
   if (editingId) {
     const s = shoes.find(x => x.id === editingId);
     if (s) {
-      set('f-size', s.size);
-      set('f-year', s.year);
+      set('f-size',          s.size);
+      set('f-year',          s.year);
+      set('f-condition',     s.condition);
+      set('f-designer',      s.designer);
+      set('f-release-notes', s.release_notes);
       if (s.comments) { $('f-comments').value = s.comments; }
     }
   }
@@ -1449,6 +1498,9 @@ $('rev-save').addEventListener('click', async () => {
     resell_price:  $('f-resell').value  || null,
     image_url:     imageUrl,
     comments:      $('f-comments').value.trim() || null,
+    condition:     $('f-condition').value || null,
+    designer:      $('f-designer').value.trim() || null,
+    release_notes: $('f-release-notes').value.trim() || null,
   });
 
   btn.disabled = false;
@@ -1674,11 +1726,22 @@ async function openSheet(id) {
 
   $('sheet-brand').textContent   = s.brand || '';
   $('sheet-name').textContent    = s.name;
-  $('sheet-sub').textContent     = [s.type, s.color, s.year].filter(Boolean).join(' · ');
+  $('sheet-sub').textContent     = [s.type, s.color].filter(Boolean).join(' · ');
   $('sheet-size').textContent    = s.size ? 'EU ' + s.size : '—';
   $('sheet-year').textContent    = s.year || '—';
+  $('sheet-condition').textContent = s.condition || '—';
+  $('sheet-designer').textContent  = s.designer || '—';
   $('sheet-release').textContent = fmtPrice(s.release_price);
   $('sheet-resell').textContent  = fmtPrice(s.resell_price);
+  // Release notes
+  if (s.release_notes) {
+    $('sheet-release-notes-wrap').style.display = 'block';
+    $('sheet-release-notes-text').textContent = s.release_notes;
+  } else {
+    $('sheet-release-notes-wrap').style.display = 'none';
+  }
+  // Inline comments
+  $('sheet-comments-input').value = s.comments || '';
 
   const roi = roiDisplay(s.release_price, s.resell_price);
   if (roi) {
@@ -1688,13 +1751,6 @@ async function openSheet(id) {
   } else {
     $('sheet-roi').style.display = 'none';
   }
-  if (s.comments) {
-    $('sheet-comments').style.display = 'block';
-    $('sheet-comments-text').textContent = s.comments;
-  } else {
-    $('sheet-comments').style.display = 'none';
-  }
-  // Show last worn date
   $('sheet-last-worn').textContent = fmtLastWorn(s.last_worn);
 
   $('sheet-overlay').style.display = 'flex';
@@ -1757,6 +1813,16 @@ $('sheet-overlay').addEventListener('click', e => {
 // Format last worn date nicely
 
 
+// Save inline comment on blur
+async function saveSheetComment() {
+  const s = shoes.find(x => x.id === currentSheetId);
+  if (!s) return;
+  const val = $('sheet-comments-input').value.trim();
+  if (val === (s.comments || '')) return; // no change
+  await sb.from('sneakers').update({ comments: val || null }).eq('id', s.id);
+  s.comments = val || null;
+}
+
 $('sheet-wear-btn').addEventListener('click', async () => {
   const s = shoes.find(x => x.id === currentSheetId);
   if (!s) return;
@@ -1764,11 +1830,13 @@ $('sheet-wear-btn').addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Saving...';
   const now = new Date().toISOString();
-  const { error } = await sb.from('sneakers').update({ last_worn: now }).eq('id', s.id);
+  const newCount = (s.wear_count || 0) + 1;
+  const { error } = await sb.from('sneakers').update({ last_worn: now, wear_count: newCount }).eq('id', s.id);
   if (error) {
     toast('Failed to update', 'error');
   } else {
     s.last_worn = now;
+    s.wear_count = newCount;
     $('sheet-last-worn').textContent = fmtLastWorn(now);
     toast('Marked as worn today 👟', 'success');
     renderGrid();
@@ -1818,6 +1886,135 @@ $('sheet-refresh-price').addEventListener('click', async () => {
 $('sheet-delete').addEventListener('click', () => {
   if (!currentSheetId) return;
   if (confirm('Delete this sneaker from your vault?')) deleteShoe(currentSheetId);
+});
+
+// ── Share as JPEG ─────────────────────────────────────
+$('sheet-share').addEventListener('click', async () => {
+  const s = shoes.find(x => x.id === currentSheetId);
+  if (!s) return;
+  const btn = $('sheet-share');
+  btn.textContent = 'Creating...';
+  btn.disabled = true;
+
+  try {
+    const canvas = document.createElement('canvas');
+    const W = 800, H = 600;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // Draw shoe photo if available
+    if (s.image_url) {
+      await new Promise(res => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          // Left half: image
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, 0, W * 0.5, H);
+          ctx.clip();
+          const scale = Math.max((W*0.5) / img.width, H / img.height);
+          const iw = img.width * scale, ih = img.height * scale;
+          ctx.drawImage(img, (W*0.5 - iw)/2, (H - ih)/2, iw, ih);
+          ctx.restore();
+          res();
+        };
+        img.onerror = res;
+        img.src = s.image_url;
+      });
+    }
+
+    // Right panel background
+    ctx.fillStyle = '#f7f7f5';
+    ctx.fillRect(W * 0.5, 0, W * 0.5, H);
+
+    // Vertical divider
+    ctx.fillStyle = '#e8e8e8';
+    ctx.fillRect(W * 0.5, 0, 1, H);
+
+    const rx = W * 0.5 + 32;
+    let ry = 48;
+    const rw = W * 0.5 - 64;
+
+    // Brand
+    ctx.fillStyle = '#aaaaaa';
+    ctx.font = '600 11px "Space Mono", monospace';
+    ctx.letterSpacing = '2px';
+    ctx.fillText((s.brand || '').toUpperCase(), rx, ry);
+    ry += 28;
+
+    // Name
+    ctx.fillStyle = '#0d0d0d';
+    ctx.font = 'bold 22px "DM Sans", system-ui';
+    ctx.fillText(s.name, rx, ry);
+    ry += 10;
+
+    // Sub
+    ctx.fillStyle = '#888';
+    ctx.font = '14px "DM Sans", system-ui';
+    const sub = [s.type, s.color].filter(Boolean).join(' · ');
+    ctx.fillText(sub, rx, ry + 10);
+    ry += 36;
+
+    // Divider
+    ctx.fillStyle = '#e8e8e8';
+    ctx.fillRect(rx, ry, rw, 1);
+    ry += 20;
+
+    // Fields helper
+    function field(label, val) {
+      if (!val) return;
+      ctx.fillStyle = '#aaa';
+      ctx.font = '10px "Space Mono", monospace';
+      ctx.fillText(label.toUpperCase(), rx, ry);
+      ctx.fillStyle = '#0d0d0d';
+      ctx.font = '600 14px "DM Sans", system-ui';
+      ctx.fillText(String(val), rx, ry + 18);
+      ry += 40;
+    }
+
+    field('EU Size',    s.size ? 'EU ' + s.size : null);
+    field('Condition',  s.condition);
+    field('Designer',   s.designer);
+    field('Year',       s.year);
+    field('Release',    s.release_price ? '€' + Number(s.release_price).toLocaleString() : null);
+    field('Resell',     s.resell_price  ? '€' + Number(s.resell_price).toLocaleString()  : null);
+    if (s.release_price && s.resell_price) {
+      const roi = Math.round((s.resell_price - s.release_price) / s.release_price * 100);
+      field('ROI', (roi >= 0 ? '+' : '') + roi + '%');
+    }
+
+    // SneakerVault watermark bottom right
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.font = 'bold 12px "Space Mono", monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('SNEAKERVAULT', W - 20, H - 20);
+    ctx.textAlign = 'left';
+
+    // Export
+    canvas.toBlob(async blob => {
+      const file = new File([blob], `${s.brand}-${s.name}.jpg`, { type: 'image/jpeg' });
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${s.brand} ${s.name}` });
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${s.brand}-${s.name}.jpg`;
+        a.click();
+      }
+      btn.textContent = '↑ Share';
+      btn.disabled = false;
+    }, 'image/jpeg', 0.92);
+
+  } catch(e) {
+    toast('Share failed: ' + e.message, 'error');
+    btn.textContent = '↑ Share';
+    btn.disabled = false;
+  }
 });
 
 $('sheet-adjust-photo').addEventListener('click', () => {
@@ -1887,39 +2084,32 @@ function renderStatsPage() {
   const profit = resell - cost;
   const roi    = cost > 0 ? Math.round(profit / cost * 100) : 0;
 
-  // ── Wear data ──
-  const worn = shoes.filter(s => s.last_worn);
-  const neverWorn = shoes.filter(s => !s.last_worn);
+  const byBrand = {};
+  shoes.forEach(s => { byBrand[s.brand] = (byBrand[s.brand] || 0) + 1; });
+  const sortedBrands = Object.entries(byBrand).sort((a,b) => b[1]-a[1]);
+  const maxBrand = sortedBrands[0]?.[1] || 1;
 
-  // Total wears this week / month
+  const topResell = [...shoes].sort((a,b) => (b.resell_price||0) - (a.resell_price||0)).slice(0,3);
+  const neverWorn = shoes.filter(s => !s.last_worn).length;
+
+  // ── Wear stats ──
+  const worn = shoes.filter(s => s.last_worn);
   const weekAgo  = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
   const monthAgo = new Date(now); monthAgo.setDate(monthAgo.getDate() - 30);
   const yearAgo  = new Date(now); yearAgo.setDate(yearAgo.getDate() - 365);
-
   const wornThisWeek  = worn.filter(s => new Date(s.last_worn) >= weekAgo).length;
   const wornThisMonth = worn.filter(s => new Date(s.last_worn) >= monthAgo).length;
   const wornThisYear  = worn.filter(s => new Date(s.last_worn) >= yearAgo).length;
 
-  // Avg wears per week (based on days since first wear recorded)
-  const wornDates = worn.map(s => new Date(s.last_worn)).sort((a,b) => a-b);
-  const firstWear = wornDates[0];
+  const firstWear = worn.length ? worn.map(s => new Date(s.last_worn)).sort((a,b)=>a-b)[0] : null;
   const daysSinceFirst = firstWear ? Math.max(1, Math.round((now - firstWear) / 86400000)) : 1;
   const avgPerWeek = firstWear ? (worn.length / daysSinceFirst * 7).toFixed(1) : '—';
-  const avgPerDay  = firstWear ? (worn.length / daysSinceFirst).toFixed(2) : '—';
 
-  // Most worn shoe
-  const mostWorn = worn.length > 0 ? worn.reduce((a, b) =>
-    new Date(a.last_worn) > new Date(b.last_worn) ? a : b) : null;
-
-  // Wear by time of day
-  const timeOfDay = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };
-  worn.forEach(s => {
-    const h = new Date(s.last_worn).getHours();
-    if (h >= 5 && h < 12)  timeOfDay.Morning++;
-    else if (h >= 12 && h < 17) timeOfDay.Afternoon++;
-    else if (h >= 17 && h < 21) timeOfDay.Evening++;
-    else timeOfDay.Night++;
-  });
+  // Top 10 most worn by wear_count
+  const mostWornList = [...shoes]
+    .filter(s => (s.wear_count || 0) > 0)
+    .sort((a,b) => (b.wear_count||0) - (a.wear_count||0))
+    .slice(0, 10);
 
   // Wear by day of week
   const daysOfWeek = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -1933,35 +2123,12 @@ function renderStatsPage() {
   const sortedWearBrand = Object.entries(wearByBrand).sort((a,b) => b[1]-a[1]);
   const maxWearBrand = sortedWearBrand[0]?.[1] || 1;
 
-  // Wear by type
-  const wearByType = {};
-  worn.forEach(s => { if (s.type) wearByType[s.type] = (wearByType[s.type] || 0) + 1; });
-
-  // Wear by size
-  const wearBySize = {};
-  worn.forEach(s => { if (s.size) wearBySize[s.size] = (wearBySize[s.size] || 0) + 1; });
-  const sortedWearSize = Object.entries(wearBySize).sort((a,b) => b[1]-a[1]);
-
-  // Collection by brand / type
-  const byBrand = {};
-  shoes.forEach(s => { byBrand[s.brand] = (byBrand[s.brand] || 0) + 1; });
-  const sortedBrands = Object.entries(byBrand).sort((a,b) => b[1]-a[1]);
-  const maxBrand = sortedBrands[0]?.[1] || 1;
-
-  const byType = {};
-  shoes.forEach(s => { if (s.type) byType[s.type] = (byType[s.type] || 0) + 1; });
-
-  const topResell = [...shoes].sort((a,b) => (b.resell_price||0) - (a.resell_price||0)).slice(0,3);
-
-  function bar(val, max, color='var(--t1)') {
+  function bar(val, max) {
     const pct = Math.round(val / max * 100);
-    return `<div style="flex:1;height:6px;background:var(--s2);border-radius:3px;overflow:hidden">
-      <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;transition:width .4s"></div>
-    </div>`;
+    return `<div style="flex:1;height:6px;background:var(--s2);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--t1);border-radius:3px"></div></div>`;
   }
 
   $('stats-page').innerHTML = `
-
     <div class="stats-heading">Collection</div>
     <div class="stats-card">
       <div class="stats-row"><span class="stats-row-label">Total pairs</span><span class="stats-row-val">${shoes.length}</span></div>
@@ -1969,81 +2136,8 @@ function renderStatsPage() {
       <div class="stats-row"><span class="stats-row-label">Total resell value</span><span class="stats-row-val">${fmtPrice(resell)}</span></div>
       <div class="stats-row"><span class="stats-row-label">Total profit</span><span class="stats-row-val ${profit>=0?'roi-pos':'roi-neg'}">${profit>=0?'+':''}${fmtPrice(profit)}</span></div>
       <div class="stats-row"><span class="stats-row-label">Portfolio ROI</span><span class="stats-row-val ${roi>=0?'roi-pos':'roi-neg'}">${roi>=0?'+':''}${roi}%</span></div>
-      <div class="stats-row"><span class="stats-row-label">Never worn</span><span class="stats-row-val">${neverWorn.length} pairs</span></div>
+      <div class="stats-row"><span class="stats-row-label">Never worn</span><span class="stats-row-val">${neverWorn} pairs</span></div>
     </div>
-
-    ${worn.length > 0 ? `
-    <div class="stats-heading">Wear — Overview</div>
-    <div class="stats-card">
-      <div class="stats-row"><span class="stats-row-label">Pairs worn at least once</span><span class="stats-row-val">${worn.length} of ${shoes.length}</span></div>
-      <div class="stats-row"><span class="stats-row-label">Worn this week</span><span class="stats-row-val">${wornThisWeek}</span></div>
-      <div class="stats-row"><span class="stats-row-label">Worn this month</span><span class="stats-row-val">${wornThisMonth}</span></div>
-      <div class="stats-row"><span class="stats-row-label">Worn this year</span><span class="stats-row-val">${wornThisYear}</span></div>
-      <div class="stats-row"><span class="stats-row-label">Avg per week</span><span class="stats-row-val">${avgPerWeek}</span></div>
-      <div class="stats-row"><span class="stats-row-label">Avg per day</span><span class="stats-row-val">${avgPerDay}</span></div>
-      ${mostWorn ? `<div class="stats-row"><span class="stats-row-label">Most recently worn</span><span class="stats-row-val" style="text-align:right;max-width:55%">${mostWorn.brand} ${mostWorn.name}</span></div>` : ''}
-    </div>
-
-    <div class="stats-heading">Wear — Time of day</div>
-    <div class="stats-card">
-      ${Object.entries(timeOfDay).map(([label, count]) => `
-        <div class="stats-row" style="gap:10px">
-          <span class="stats-row-label" style="min-width:90px">${label === 'Morning' ? '🌅' : label === 'Afternoon' ? '☀️' : label === 'Evening' ? '🌆' : '🌙'} ${label}</span>
-          ${bar(count, Math.max(...Object.values(timeOfDay), 1))}
-          <span class="stats-row-val" style="min-width:24px;text-align:right">${count}</span>
-        </div>
-      `).join('')}
-    </div>
-
-    <div class="stats-heading">Wear — Day of week</div>
-    <div class="stats-card">
-      <div style="display:flex;align-items:flex-end;gap:6px;height:70px;padding:8px 0">
-        ${byDow.map((count, i) => `
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-            <div style="width:100%;background:${count===Math.max(...byDow)?'var(--t1)':'var(--s2)'};border-radius:4px 4px 0 0;height:${Math.round(count/maxDow*52)+4}px;transition:height .3s;min-height:4px"></div>
-            <span style="font-size:9px;font-family:'Space Mono',monospace;color:var(--t3)">${daysOfWeek[i]}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="stats-heading">Wear — By brand</div>
-    <div class="stats-card">
-      <div class="brand-bar-wrap">
-        ${sortedWearBrand.map(([brand, count]) => `
-          <div class="brand-bar-row">
-            <div class="brand-bar-label">${brand}</div>
-            <div class="brand-bar-track"><div class="brand-bar-fill" style="width:${Math.round(count/maxWearBrand*100)}%"></div></div>
-            <div class="brand-bar-count">${count}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    ${Object.keys(wearByType).length ? `
-    <div class="stats-heading">Wear — By type</div>
-    <div class="stats-card">
-      ${Object.entries(wearByType).sort((a,b)=>b[1]-a[1]).map(([type, count]) => `
-        <div class="stats-row" style="gap:10px">
-          <span class="stats-row-label" style="min-width:100px">${type}</span>
-          ${bar(count, Math.max(...Object.values(wearByType), 1))}
-          <span class="stats-row-val" style="min-width:24px;text-align:right">${count}</span>
-        </div>
-      `).join('')}
-    </div>` : ''}
-
-    ${sortedWearSize.length ? `
-    <div class="stats-heading">Wear — By size</div>
-    <div class="stats-card">
-      ${sortedWearSize.map(([size, count]) => `
-        <div class="stats-row"><span class="stats-row-label">EU ${size}</span><span class="stats-row-val">${count} time${count>1?'s':''}</span></div>
-      `).join('')}
-    </div>` : ''}
-    ` : `
-    <div class="stats-heading">Wear</div>
-    <div class="stats-card">
-      <div style="text-align:center;padding:20px 0;color:var(--t3);font-size:14px">No wear data yet.<br>Tap 👟 Wear today on any shoe.</div>
-    </div>`}
 
     <div class="stats-heading">Collection — By brand</div>
     <div class="stats-card">
@@ -2069,14 +2163,67 @@ function renderStatsPage() {
       `).join('')}
     </div>` : ''}
 
-    ${Object.keys(byType).length ? `
-    <div class="stats-heading">Collection — By type</div>
+    ${worn.length > 0 ? `
+    <div class="stats-heading">Wear — Overview</div>
     <div class="stats-card">
-      ${Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([type, count]) => `
-        <div class="stats-row"><span class="stats-row-label">${type}</span><span class="stats-row-val">${count}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Pairs worn at least once</span><span class="stats-row-val">${worn.length} of ${shoes.length}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Worn this week</span><span class="stats-row-val">${wornThisWeek}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Worn this month</span><span class="stats-row-val">${wornThisMonth}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Worn this year</span><span class="stats-row-val">${wornThisYear}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Avg wears per week</span><span class="stats-row-val">${avgPerWeek}</span></div>
+    </div>
+
+    ${mostWornList.length > 0 ? `
+    <div class="stats-heading">Most worn shoes</div>
+    <div class="stats-card">
+      ${mostWornList.map((s, i) => `
+        <div class="stats-row">
+          <span class="stats-row-label" style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:'Space Mono',monospace;color:var(--t3);font-size:10px;min-width:16px">${i+1}.</span>
+            ${s.brand} ${s.name}
+          </span>
+          <span class="stats-row-val">${s.wear_count} wear${s.wear_count>1?'s':''}</span>
+        </div>
       `).join('')}
     </div>` : ''}
+
+    <div class="stats-heading">Wear — By day of week</div>
+    <div class="stats-card">
+      <div style="display:flex;align-items:flex-end;gap:6px;height:70px;padding:8px 0">
+        ${byDow.map((count, i) => `
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;background:${count===Math.max(...byDow)?'var(--t1)':'var(--s2)'};border-radius:4px 4px 0 0;height:${Math.round(count/maxDow*52)+4}px;min-height:4px"></div>
+            <span style="font-size:9px;font-family:'Space Mono',monospace;color:var(--t3)">${daysOfWeek[i]}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="stats-heading">Wear — By brand</div>
+    <div class="stats-card">
+      <div class="brand-bar-wrap">
+        ${sortedWearBrand.map(([brand, count]) => `
+          <div class="brand-bar-row">
+            <div class="brand-bar-label">${brand}</div>
+            <div class="brand-bar-track"><div class="brand-bar-fill" style="width:${Math.round(count/maxWearBrand*100)}%"></div></div>
+            <div class="brand-bar-count">${count}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    ` : `
+    <div class="stats-heading">Wear</div>
+    <div class="stats-card">
+      <div style="text-align:center;padding:20px 0;color:var(--t3);font-size:14px">No wear data yet.<br>Tap 👟 Wear today on any shoe.</div>
+    </div>`}
   `;
+}
+
+
+// ── Scroll to top on nav tap ────────────────────────
+function scrollToTop() {
+  const grid = document.querySelector('.grid-area');
+  if (grid) grid.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ── Boot ──────────────────────────────────────
