@@ -685,7 +685,7 @@ nav {
     </div>
     <div style="padding:0 20px 10px">
       <button id="sheet-refresh-price" style="width:100%;padding:12px;border-radius:11px;font-size:13px;font-weight:600;border:1px solid rgba(0,0,0,0.12);background:#f7f7f5;color:#0d0d0d;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
-        <span id="sheet-refresh-icon">↻</span> Refresh resell price
+        <span id="sheet-refresh-icon">↻</span> Refresh
       </button>
     </div>
     <div class="sheet-btns">
@@ -1053,20 +1053,58 @@ Return ONLY a valid JSON object, no markdown, no explanation:
 }
 
 // ── AI price refresh ──────────────────────────
-async function refreshResellPrice(shoe) {
-  const prompt = `You are a sneaker market expert. I need the current resell market price in EUR for this sneaker:
-
+async function refreshShoeInfo(shoe) {
+  // Re-identify using the stored photo if available, otherwise text-only
+  if (shoe.image_url) {
+    // Fetch image as base64
+    try {
+      const resp = await fetch(shoe.image_url);
+      const blob = await resp.blob();
+      const base64 = await new Promise(res => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.readAsDataURL(blob);
+      });
+      const mimeType = 'image/jpeg';
+      const prompt = buildIdentifyPrompt();
+      const response = await fetch(CONFIG.WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-opus-4-5',
+          max_tokens: 700,
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+            { type: 'text', text: prompt }
+          ]}]
+        })
+      });
+      if (!response.ok) throw new Error('API ' + response.status);
+      const json = await response.json();
+      const text = json.content[0].text.trim().replace(/^```json\s*/i,'').replace(/```$/,'').trim();
+      return JSON.parse(text);
+    } catch(e) {
+      // Fall through to text-only
+    }
+  }
+  // Text-only fallback
+  const prompt = `You are a sneaker expert. Look up current info for this sneaker:
 Brand: ${shoe.brand}
 Model: ${shoe.name}
 Colorway: ${shoe.color || 'unknown'}
-Size: EU ${shoe.size || 'unknown'}
 
-Research the current resell value on platforms like Klekt, StockX, GOAT, and Vinted in Europe.
-Return ONLY a JSON object, no markdown, no explanation:
+Return ONLY a JSON object:
 {
-  "resell_price": current market resell price as a number in EUR,
-  "source": "brief note e.g. Klekt avg ~€220, StockX ~€210",
-  "confidence": "high | medium | low"
+  "brand": "full brand name",
+  "name": "full model name",
+  "color": "colorway",
+  "type": "Lifestyle|Basketball|Running|Training|Skate|Trail|Collaboration|Limited Edition|Other",
+  "release_year": number or null,
+  "release_price": current EUR retail price as number or null,
+  "resell_price": current EUR resell market value as number or null,
+  "designer": "collaborating designer name or null",
+  "release_notes": "2-3 sentences about the shoe history and significance",
+  "confidence": "high|medium|low"
 }`;
 
   const response = await fetch(CONFIG.WORKER_URL, {
@@ -1074,7 +1112,7 @@ Return ONLY a JSON object, no markdown, no explanation:
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-opus-4-5',
-      max_tokens: 256,
+      max_tokens: 700,
       messages: [{ role: 'user', content: prompt }]
     })
   });
@@ -1853,34 +1891,38 @@ $('sheet-refresh-price').addEventListener('click', async () => {
   btn.disabled = true;
   icon.textContent = '⟳';
   icon.style.animation = 'spin .8s linear infinite';
-  btn.childNodes[1].textContent = ' Fetching latest price...';
+  btn.childNodes[1].textContent = ' Refreshing...';
   try {
-    const result = await refreshResellPrice(s);
-    if (result.resell_price) {
-      // Update in DB
-      await sb.from('sneakers').update({ resell_price: result.resell_price }).eq('id', s.id);
-      // Update in memory
-      s.resell_price = result.resell_price;
-      // Update sheet display
-      $('sheet-resell').textContent = fmtPrice(result.resell_price);
-      const roi = roiDisplay(s.release_price, s.resell_price);
-      if (roi) {
-        $('sheet-roi').style.display = 'flex';
-        $('sheet-roi-val').textContent = `${roi.positive ? '+' : ''}${roi.pct}% · ${roi.positive ? '+' : ''}${fmtPrice(roi.profit)}`;
-        $('sheet-roi-val').className = 'roi-value ' + (roi.positive ? 'roi-pos' : 'roi-neg');
-      }
-      // Update grid card
+    const result = await refreshShoeInfo(s);
+    // Build update payload from result
+    const updates = {};
+    if (result.brand)         updates.brand         = result.brand;
+    if (result.name)          updates.name          = result.name;
+    if (result.color)         updates.color         = result.color;
+    if (result.type)          updates.type          = result.type;
+    if (result.release_year)  updates.year          = result.release_year;
+    if (result.release_price) updates.release_price = result.release_price;
+    if (result.resell_price)  updates.resell_price  = result.resell_price;
+    if (result.designer)      updates.designer      = result.designer;
+    if (result.release_notes) updates.release_notes = result.release_notes;
+
+    if (Object.keys(updates).length) {
+      await sb.from('sneakers').update(updates).eq('id', s.id);
+      Object.assign(s, updates);
+      // Refresh sheet display
+      openSheet(s.id);
       renderGrid();
-      const note = result.source ? ' (' + result.source + ')' : '';
-      toast('Price updated to ' + fmtPrice(result.resell_price) + note, 'success');
+      toast('Info refreshed ✓', 'success');
+    } else {
+      toast('No updates found', '');
     }
   } catch(e) {
-    toast('Price lookup failed: ' + e.message, 'error');
+    toast('Refresh failed: ' + e.message, 'error');
   }
   btn.disabled = false;
   icon.style.animation = '';
   icon.textContent = '↻';
-  btn.childNodes[1].textContent = ' Refresh resell price';
+  btn.childNodes[1].textContent = ' Refresh';
 });
 
 $('sheet-delete').addEventListener('click', () => {
