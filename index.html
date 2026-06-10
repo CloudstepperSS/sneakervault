@@ -2288,19 +2288,6 @@ async function renderStatsPage() {
       `).join('')}
     </div>` : ''}
 
-    <div class="stats-heading">Wear — Time of day</div>
-    <div class="stats-card">
-      ${Object.entries(timeOfDay).map(([label, count]) => `
-        <div class="stats-row" style="gap:10px">
-          <span class="stats-row-label" style="min-width:110px">${label}</span>
-          <div style="flex:1;height:6px;background:var(--s2);border-radius:3px;overflow:hidden">
-            <div style="width:${Math.round(count/maxTod*100)}%;height:100%;background:var(--t1);border-radius:3px"></div>
-          </div>
-          <span class="stats-row-val" style="min-width:28px;text-align:right">${count}</span>
-        </div>
-      `).join('')}
-    </div>
-
     <div class="stats-heading">Wear — By day of week</div>
     <div class="stats-card">
       <div style="display:flex;align-items:flex-end;gap:6px;height:70px;padding:8px 0">
