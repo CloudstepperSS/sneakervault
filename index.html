@@ -884,6 +884,18 @@ async function loadShoes(attempt = 1) {
     return;
   }
   shoes = data || [];
+
+  // Load wear counts from wear_log for accurate per-shoe totals
+  const { data: wearData } = await sb.from('wear_log')
+    .select('sneaker_id')
+    .eq('user_id', user.id);
+
+  if (wearData && wearData.length) {
+    const counts = {};
+    wearData.forEach(row => { counts[row.sneaker_id] = (counts[row.sneaker_id] || 0) + 1; });
+    shoes.forEach(s => { if (counts[s.id]) s.wear_count = counts[s.id]; });
+  }
+
   render();
 }
 
@@ -1868,9 +1880,19 @@ $('sheet-wear-btn').addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Saving...';
   const now = new Date().toISOString();
+
+  // Insert into wear_log for full history
+  const { error: logErr } = await sb.from('wear_log').insert({
+    user_id:    user.id,
+    sneaker_id: s.id,
+    worn_at:    now,
+  });
+
+  // Update sneaker last_worn + wear_count
   const newCount = (s.wear_count || 0) + 1;
   const { error } = await sb.from('sneakers').update({ last_worn: now, wear_count: newCount }).eq('id', s.id);
-  if (error) {
+
+  if (error || logErr) {
     toast('Failed to update', 'error');
   } else {
     s.last_worn = now;
@@ -2108,17 +2130,25 @@ function showVault() {
 $('tab-vault').addEventListener('click', showVault);
 $('stats-back').addEventListener('click', showVault);
 
-$('tab-stats').addEventListener('click', () => {
+$('tab-stats').addEventListener('click', async () => {
   activeTab = 'stats';
   $('tab-stats').classList.add('on');
   $('tab-vault').classList.remove('on');
-  renderStatsPage();
   $('stats-view').style.display = 'flex';
+  await renderStatsPage();
 });
 
 // ── Stats page ────────────────────────────────
-function renderStatsPage() {
+async function renderStatsPage() {
   const now = new Date();
+
+  // Load full wear log for accurate stats
+  let wearLog = [];
+  const { data: logData } = await sb.from('wear_log')
+    .select('sneaker_id, worn_at')
+    .eq('user_id', user.id)
+    .order('worn_at', { ascending: false });
+  if (logData) wearLog = logData;
 
   // ── Collection stats ──
   const cost   = shoes.reduce((s, x) => s + Number(x.release_price || 0), 0);
@@ -2134,34 +2164,55 @@ function renderStatsPage() {
   const topResell = [...shoes].sort((a,b) => (b.resell_price||0) - (a.resell_price||0)).slice(0,3);
   const neverWorn = shoes.filter(s => !s.last_worn).length;
 
-  // ── Wear stats ──
+  // ── Wear stats — use wearLog for accuracy ──
   const worn = shoes.filter(s => s.last_worn);
+  const totalWears = wearLog.length;
+
   const weekAgo  = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
   const monthAgo = new Date(now); monthAgo.setDate(monthAgo.getDate() - 30);
   const yearAgo  = new Date(now); yearAgo.setDate(yearAgo.getDate() - 365);
-  const wornThisWeek  = worn.filter(s => new Date(s.last_worn) >= weekAgo).length;
-  const wornThisMonth = worn.filter(s => new Date(s.last_worn) >= monthAgo).length;
-  const wornThisYear  = worn.filter(s => new Date(s.last_worn) >= yearAgo).length;
 
-  const firstWear = worn.length ? worn.map(s => new Date(s.last_worn)).sort((a,b)=>a-b)[0] : null;
-  const daysSinceFirst = firstWear ? Math.max(1, Math.round((now - firstWear) / 86400000)) : 1;
-  const avgPerWeek = firstWear ? (worn.length / daysSinceFirst * 7).toFixed(1) : '—';
+  const wearsThisWeek  = wearLog.filter(w => new Date(w.worn_at) >= weekAgo).length;
+  const wearsThisMonth = wearLog.filter(w => new Date(w.worn_at) >= monthAgo).length;
+  const wearsThisYear  = wearLog.filter(w => new Date(w.worn_at) >= yearAgo).length;
 
-  // Top 10 most worn by wear_count
-  const mostWornList = [...shoes]
-    .filter(s => (s.wear_count || 0) > 0)
-    .sort((a,b) => (b.wear_count||0) - (a.wear_count||0))
-    .slice(0, 10);
+  const firstWearDate = wearLog.length ? new Date(wearLog[wearLog.length-1].worn_at) : null;
+  const daysSinceFirst = firstWearDate ? Math.max(1, Math.round((now - firstWearDate) / 86400000)) : 1;
+  const avgPerWeek = firstWearDate ? (totalWears / daysSinceFirst * 7).toFixed(1) : '—';
+  const avgPerDay  = firstWearDate ? (totalWears / daysSinceFirst).toFixed(2) : '—';
 
-  // Wear by day of week
+  // Top 10 most worn — count from wearLog
+  const wearCounts = {};
+  wearLog.forEach(w => { wearCounts[w.sneaker_id] = (wearCounts[w.sneaker_id] || 0) + 1; });
+  const mostWornList = Object.entries(wearCounts)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0, 10)
+    .map(([id, count]) => ({ shoe: shoes.find(s => s.id === id), count }))
+    .filter(x => x.shoe);
+
+  // Wear by day of week — from full log
   const daysOfWeek = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const byDow = [0,0,0,0,0,0,0];
-  worn.forEach(s => { byDow[new Date(s.last_worn).getDay()]++; });
+  wearLog.forEach(w => { byDow[new Date(w.worn_at).getDay()]++; });
   const maxDow = Math.max(...byDow, 1);
 
-  // Wear by brand
+  // Time of day — from full log
+  const timeOfDay = { '🌅 Morning': 0, '☀️ Afternoon': 0, '🌆 Evening': 0, '🌙 Night': 0 };
+  wearLog.forEach(w => {
+    const h = new Date(w.worn_at).getHours();
+    if (h >= 5  && h < 12) timeOfDay['🌅 Morning']++;
+    else if (h >= 12 && h < 17) timeOfDay['☀️ Afternoon']++;
+    else if (h >= 17 && h < 21) timeOfDay['🌆 Evening']++;
+    else timeOfDay['🌙 Night']++;
+  });
+  const maxTod = Math.max(...Object.values(timeOfDay), 1);
+
+  // Wear by brand — from full log
   const wearByBrand = {};
-  worn.forEach(s => { wearByBrand[s.brand] = (wearByBrand[s.brand] || 0) + 1; });
+  wearLog.forEach(w => {
+    const s = shoes.find(x => x.id === w.sneaker_id);
+    if (s) wearByBrand[s.brand] = (wearByBrand[s.brand] || 0) + 1;
+  });
   const sortedWearBrand = Object.entries(wearByBrand).sort((a,b) => b[1]-a[1]);
   const maxWearBrand = sortedWearBrand[0]?.[1] || 1;
 
@@ -2205,29 +2256,44 @@ function renderStatsPage() {
       `).join('')}
     </div>` : ''}
 
-    ${worn.length > 0 ? `
+    ${totalWears > 0 ? `
     <div class="stats-heading">Wear — Overview</div>
     <div class="stats-card">
+      <div class="stats-row"><span class="stats-row-label">Total wears logged</span><span class="stats-row-val">${totalWears}</span></div>
       <div class="stats-row"><span class="stats-row-label">Pairs worn at least once</span><span class="stats-row-val">${worn.length} of ${shoes.length}</span></div>
-      <div class="stats-row"><span class="stats-row-label">Worn this week</span><span class="stats-row-val">${wornThisWeek}</span></div>
-      <div class="stats-row"><span class="stats-row-label">Worn this month</span><span class="stats-row-val">${wornThisMonth}</span></div>
-      <div class="stats-row"><span class="stats-row-label">Worn this year</span><span class="stats-row-val">${wornThisYear}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Wears this week</span><span class="stats-row-val">${wearsThisWeek}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Wears this month</span><span class="stats-row-val">${wearsThisMonth}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Wears this year</span><span class="stats-row-val">${wearsThisYear}</span></div>
       <div class="stats-row"><span class="stats-row-label">Avg wears per week</span><span class="stats-row-val">${avgPerWeek}</span></div>
+      <div class="stats-row"><span class="stats-row-label">Avg wears per day</span><span class="stats-row-val">${avgPerDay}</span></div>
     </div>
 
     ${mostWornList.length > 0 ? `
     <div class="stats-heading">Most worn shoes</div>
     <div class="stats-card">
-      ${mostWornList.map((s, i) => `
+      ${mostWornList.map(({shoe: s, count}, i) => `
         <div class="stats-row">
           <span class="stats-row-label" style="display:flex;align-items:center;gap:8px">
             <span style="font-family:'Space Mono',monospace;color:var(--t3);font-size:10px;min-width:16px">${i+1}.</span>
             ${s.brand} ${s.name}
           </span>
-          <span class="stats-row-val">${s.wear_count} wear${s.wear_count>1?'s':''}</span>
+          <span class="stats-row-val">${count} wear${count>1?'s':''}</span>
         </div>
       `).join('')}
     </div>` : ''}
+
+    <div class="stats-heading">Wear — Time of day</div>
+    <div class="stats-card">
+      ${Object.entries(timeOfDay).map(([label, count]) => `
+        <div class="stats-row" style="gap:10px">
+          <span class="stats-row-label" style="min-width:110px">${label}</span>
+          <div style="flex:1;height:6px;background:var(--s2);border-radius:3px;overflow:hidden">
+            <div style="width:${Math.round(count/maxTod*100)}%;height:100%;background:var(--t1);border-radius:3px"></div>
+          </div>
+          <span class="stats-row-val" style="min-width:28px;text-align:right">${count}</span>
+        </div>
+      `).join('')}
+    </div>
 
     <div class="stats-heading">Wear — By day of week</div>
     <div class="stats-card">
