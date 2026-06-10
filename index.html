@@ -1780,7 +1780,13 @@ async function openSheet(id) {
   $('sheet-size').textContent    = s.size ? 'EU ' + s.size : '—';
   $('sheet-year').textContent    = s.year || '—';
   $('sheet-condition').textContent = s.condition || '—';
-  $('sheet-designer').textContent  = s.designer || '—';
+  // Only show designer if we have one
+  if (s.designer) {
+    $('sheet-designer-wrap').style.display = 'block';
+    $('sheet-designer').textContent = s.designer;
+  } else {
+    $('sheet-designer-wrap').style.display = 'none';
+  }
   $('sheet-release').textContent = fmtPrice(s.release_price);
   $('sheet-resell').textContent  = fmtPrice(s.resell_price);
   // Release notes
